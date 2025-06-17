@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resolutor de Desigualdades con Gráficas</title>
+    <title>Resolutor y Graficador de Desigualdades</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,7 +68,7 @@
             font-size: 1.1em;
             color: #333;
             text-align: center;
-            word-wrap: break-word; /* Para asegurar que el texto largo se ajuste */
+            word-wrap: break-word; /* Asegura que el texto largo se ajuste */
         }
         .result strong {
             color: #0056b3;
@@ -87,8 +87,9 @@
         }
         #plot {
             width: 100%;
-            height: 400px;
+            height: 400px; /* Altura fija para la gráfica */
             margin-top: 20px;
+            border: 1px solid #ccc; /* Borde para la gráfica */
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/function-plot@1.25.1/dist/function-plot.js"></script>
@@ -96,8 +97,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Resolutor de Desigualdades (Texto Libre)</h1>
-        <p>Ingresa tu desigualdad lineal o cuadrática. El lado derecho se asume como 0.</p>
+        <h1>Resolutor y Graficador de Desigualdades</h1>
+        <p>Introduce tu desigualdad lineal o cuadrática. El lado derecho se asume como 0 si no se especifica un término constante.</p>
         <p><strong>Ejemplos válidos:</strong></p>
         <ul>
             <li>`2x + 5 < 0`</li>
@@ -105,13 +106,16 @@
             <li>`x^2 - 4x + 3 <= 0`</li>
             <li>`2x^2 > 8` (se interpretará como `2x^2 - 8 > 0`)</li>
             <li>`-x^2 + 2x < 0`</li>
+            <li>`x > 5` (se interpretará como `x - 5 > 0`)</li>
+            <li>`4 <= x` (se interpretará como `4 - x <= 0` o `x - 4 >= 0` para simplificar la lógica)</li>
         </ul>
 
         <div class="input-group">
             <label for="desigualdadInput">Introduce tu desigualdad:</label>
             <input type="text" id="desigualdadInput" placeholder="Ej: x^2 - 3x + 2 < 0 o 2x + 5 >= 0">
         </div>
-        <button class="btn" onclick="resolverDesigualdad()">Resolver Desigualdad</button>
+        <button class="btn" onclick="resolverDesigualdad()">Resolver y Graficar</button>
+
         <div id="resultado" class="result"></div>
         <div id="error" class="error"></div>
         <div id="plot"></div> </div>
@@ -121,131 +125,134 @@
             const inputString = document.getElementById('desigualdadInput').value.trim();
             const resultadoDiv = document.getElementById('resultado');
             const errorDiv = document.getElementById('error');
-            const plotDiv = document.getElementById('plot'); // Obtener el div para la gráfica
+            const plotDiv = document.getElementById('plot');
 
+            // Limpiar resultados y gráficas anteriores
             resultadoDiv.innerHTML = '';
             errorDiv.innerHTML = '';
-            plotDiv.innerHTML = ''; // Limpiar la gráfica anterior
+            plotDiv.innerHTML = ''; // Importante limpiar el div de la gráfica
 
             if (!inputString) {
-                errorDiv.innerHTML = 'Por favor, introduce una desigualdad.';
+                errorDiv.innerHTML = 'Por favor, introduce una desigualdad para resolver.';
                 return;
             }
 
             // --- PASO 1: PARSEAR LA DESIGUALDAD ---
-            // Primero, normalizamos los operadores para facilitar el split
-            let normalizedString = inputString
-                .replace(/<=/g, '&le;') // Reemplazar <= por &le; para MathJax y temporalmente
-                .replace(/>=/g, '&ge;') // Reemplazar >= por &ge; para MathJax y temporalmente
-                .replace(/</g, '<')
-                .replace(/>/g, '>');
+            // Normalizar operadores para el MathJax y facilitar el split
+            let processedString = inputString
+                .replace(/\s+/g, '') // Eliminar todos los espacios
+                .replace(/<=/g, '&le;')
+                .replace(/>=/g, '&ge;');
 
-            // Buscar el operador de desigualdad
             const operadores = ['<', '&le;', '>', '&ge;'];
             let operadorEncontrado = '';
             let partes = [];
 
             for (const op of operadores) {
-                if (normalizedString.includes(op)) {
+                if (processedString.includes(op)) {
                     operadorEncontrado = op;
-                    partes = normalizedString.split(op);
+                    partes = processedString.split(op);
                     break;
                 }
             }
 
             if (!operadorEncontrado || partes.length !== 2) {
-                errorDiv.innerHTML = 'Formato de desigualdad inválido. Asegúrate de usar un operador (<, <=, >, >=) y que el lado derecho sea 0 o se pueda interpretar como tal.';
+                errorDiv.innerHTML = 'Formato de desigualdad inválido. Asegúrate de usar un operador válido (<, <=, >, >=) y que contenga dos lados.';
                 return;
             }
 
-            let ladoIzquierdo = partes[0].trim();
-            let ladoDerecho = partes[1].trim();
+            let ladoIzquierdoStr = partes[0].trim();
+            let ladoDerechoStr = partes[1].trim();
 
-            // Asumimos que el lado derecho es 0. Si el usuario pone algo más, lo restamos al lado izquierdo.
-            if (ladoDerecho !== '0' && ladoDerecho !== '') {
-                // Intentamos parsear el lado derecho como una constante
-                const valDerecho = parseFloat(ladoDerecho);
-                if (!isNaN(valDerecho)) {
-                    // Si es un número, lo restamos del lado izquierdo
-                    ladoIzquierdo += ` - ${valDerecho}`;
-                } else {
-                    errorDiv.innerHTML = 'El lado derecho de la desigualdad solo puede ser 0 o un valor constante.';
+            // Lógica para mover todo al lado izquierdo
+            let expresion = ladoIzquierdoStr;
+            if (ladoDerechoStr !== '0' && ladoDerechoStr !== '') {
+                try {
+                    // Intenta evaluar el lado derecho como una expresión (simplificado para números)
+                    const valDerecho = parseFloat(ladoDerechoStr);
+                    if (!isNaN(valDerecho)) {
+                        expresion += (valDerecho >= 0 ? '-' : '+') + Math.abs(valDerecho);
+                    } else {
+                        // Si el lado derecho no es un número simple, es más complejo y no lo parseamos en este ejemplo
+                        errorDiv.innerHTML = 'Actualmente, el lado derecho de la desigualdad debe ser 0 o una constante numérica. No se admiten expresiones complejas en el lado derecho.';
+                        return;
+                    }
+                } catch (e) {
+                    errorDiv.innerHTML = 'Error al procesar el lado derecho de la desigualdad.';
                     return;
                 }
             }
 
-            // Quitar espacios extra y normalizar signos para el parsing
-            ladoIzquierdo = ladoIzquierdo.replace(/\s+/g, '').replace(/\-\-/g, '+').replace(/\+\-/g, '-');
+            // Quitar espacios extra y normalizar signos para el parsing final
+            expresion = expresion.replace(/\s+/g, '').replace(/\-\-/g, '+').replace(/\+\-/g, '-');
 
             // Regex para extraer coeficientes: busca (signo opcional)(número opcional)x^(número opcional) o (signo opcional)(número)
-            const regexTerm = /([+-]?\d*\.?\d*)(x(\^2)?)?/g;
-            let a = 0, b = 0, c = 0;
-            let match;
+            // Mejoramos la regex para manejar casos como "x^2" o "-x" correctamente sin coeficiente explícito
+            const regexTerm = /([+-]?\d*\.?\d*|(?=[+-]))?(x(\^2)?)?/g;
+            let a = 0, b = 0, c = 0; // Coeficientes de ax^2 + bx + c
             let esCuadratica = false;
 
-            while ((match = regexTerm.exec(ladoIzquierdo)) !== null) {
-                let coeficienteStr = match[1];
-                let variable = match[2]; // 'x' o 'x^2'
-                let exponente = match[3]; // '^2'
+            let remainingExpression = expresion;
+            let match;
 
-                let coeficiente = parseFloat(coeficienteStr);
-                if (coeficienteStr === '+' || coeficienteStr === '') coeficiente = 1;
-                if (coeficienteStr === '-') coeficiente = -1;
-                if (coeficienteStr === '') coeficiente = 1; // Para 'x' o 'x^2' sin coeficiente explícito
+            // Para asegurar que todos los términos sean procesados
+            const terms = expresion.match(/([+-]?\d*\.?\d*x\^2)|([+-]?\d*\.?\d*x)|([+-]?\d+\.?\d*)/g) || [];
 
-                if (isNaN(coeficiente)) { // Esto puede pasar si match[1] es solo '+' o '-'
-                    if (coeficienteStr === '+') coeficiente = 1;
-                    else if (coeficienteStr === '-') coeficiente = -1;
+            terms.forEach(term => {
+                let coef = 0;
+                let isX2 = term.includes('x^2');
+                let isX = term.includes('x') && !isX2;
+                
+                // Extraer el coeficiente numérico
+                const numMatch = term.match(/([+-]?\d*\.?\d*)/);
+                if (numMatch && numMatch[1]) {
+                    coef = parseFloat(numMatch[1]);
+                    if (numMatch[1] === '+' || numMatch[1] === '') coef = 1;
+                    if (numMatch[1] === '-') coef = -1;
+                } else if (term === 'x^2' || term === 'x') {
+                    coef = 1;
+                } else if (term === '-x^2' || term === '-x') {
+                    coef = -1;
                 }
 
-
-                if (variable === 'x^2' || exponente === '^2') {
-                    a += coeficiente;
+                if (isX2) {
+                    a += coef;
                     esCuadratica = true;
-                } else if (variable === 'x') {
-                    b += coeficiente;
-                } else if (match[0] !== '') { // Es un término constante
-                    c += parseFloat(match[0]); // match[0] es el texto completo del término
+                } else if (isX) {
+                    b += coef;
+                } else { // Término constante
+                    c += parseFloat(term); // Asegura que sea un número
                 }
-            }
-
-            // Manejo de casos como "x^2" o "-x" sin coeficiente explícito
-            if (ladoIzquierdo.includes('x^2') && a === 0) {
-                 if (ladoIzquierdo.includes('-x^2')) a = -1;
-                 else a = 1;
-                 esCuadratica = true;
-            }
-            if (ladoIzquierdo.includes('x') && !ladoIzquierdo.includes('x^2') && b === 0) {
-                 if (ladoIzquierdo.includes('-x')) b = -1;
-                 else b = 1;
-            }
-            if (!ladoIzquierdo.includes('x') && !ladoIzquierdo.includes('x^2') && c === 0) { // Solo un número, p.ej. "5 < 0"
-                c = parseFloat(ladoIzquierdo) || 0;
-            }
+            });
 
 
-            // --- PASO 2: RESOLVER LA DESIGUALDAD Y GRAFICAR ---
+            // --- PASO 2: RESOLVER LA DESIGUALDAD Y PREPARAR LA GRÁFICA ---
             let solucionTexto = '';
-            let graphData = []; // Datos para la gráfica
+            let graphEquation = ''; // La ecuación para graficar (ax^2 + bx + c)
+
+            // Asegurarse de que 'a', 'b', 'c' sean números, si algo falló en el parsing
+            a = isNaN(a) ? 0 : a;
+            b = isNaN(b) ? 0 : b;
+            c = isNaN(c) ? 0 : c;
+
 
             if (esCuadratica && a !== 0) {
-                // Resolver cuadrática (ax² + bx + c operador 0)
+                // Ecuación cuadrática: ax^2 + bx + c
+                graphEquation = `${a} * x^2 + ${b} * x + ${c}`;
                 const discriminante = b * b - 4 * a * c;
 
                 if (discriminante < 0) {
                     // No hay raíces reales
-                    const isPositive = (a > 0 && (operadorEncontrado === '>' || operadorEncontrado === '&ge;')) || (a < 0 && (operadorEncontrado === '<' || operadorEncontrado === '&le;'));
-                    const isNegative = (a < 0 && (operadorEncontrado === '>' || operadorEncontrado === '&ge;')) || (a > 0 && (operadorEncontrado === '<' || operadorEncontrado === '&le;'));
+                    const evalAtZero = a * 0 * 0 + b * 0 + c; // Evaluar en x=0 para saber el signo
+                    const isAlwaysPositive = (a > 0); // Parábola abre hacia arriba
+                    const isAlwaysNegative = (a < 0); // Parábola abre hacia abajo
 
-                    if (isPositive) {
+                    if ((operadorEncontrado === '>' || operadorEncontrado === '&ge;') && isAlwaysPositive) {
                         solucionTexto = 'Todas las x (solución: $(-\\infty, \\infty)$)';
-                        graphData = [{ fn: `${a}*x^2 + ${b}*x + ${c}`, color: 'blue' }];
-                    } else if (isNegative) {
-                        solucionTexto = 'No hay solución (solución: $\\emptyset$)';
-                        graphData = [{ fn: `${a}*x^2 + ${b}*x + ${c}`, color: 'blue' }]; // Graficar la función aunque no haya solución
+                    } else if ((operadorEncontrado === '<' || operadorEncontrado === '&le;') && isAlwaysNegative) {
+                        solucionTexto = 'Todas las x (solución: $(-\\infty, \\infty)$)';
                     } else {
                         solucionTexto = 'No hay solución (solución: $\\emptyset$)';
-                         graphData = [{ fn: `${a}*x^2 + ${b}*x + ${c}`, color: 'blue' }]; // Graficar la función aunque no haya solución
                     }
                 } else if (discriminante === 0) {
                     // Una raíz real (doble)
@@ -255,21 +262,18 @@
                     } else if ((operadorEncontrado === '&le;' && a > 0) || (operadorEncontrado === '&ge;' && a < 0)) {
                         solucionTexto = `x = ${x0.toFixed(2)} (solución: $\{${x0.toFixed(2)}\}$)`;
                     } else { // >, >=
-                         solucionTexto = `Todas las x excepto x = ${x0.toFixed(2)} (solución: $(-\\infty, ${x0.toFixed(2)}) \\cup (${x0.toFixed(2)}, \\infty)$)`;
+                        solucionTexto = `Todas las x excepto x = ${x0.toFixed(2)} (solución: $(-\\infty, ${x0.toFixed(2)}) \\cup (${x0.toFixed(2)}, \\infty)$)`;
                     }
-                     if (operadorEncontrado === '&le;' && a < 0) solucionTexto = `Todas las x (solución: $(-\\infty, \\infty)$)`;
-                     if (operadorEncontrado === '&ge;' && a > 0) solucionTexto = `Todas las x (solución: $(-\\infty, \\infty)$)`;
-                    graphData = [{ fn: `${a}*x^2 + ${b}*x + ${c}`, color: 'blue' }];
-                    //  graphData.push({ type: 'points', x: [x0], y: [0], color: 'red' }); // Marcar la raíz
+                    if ((operadorEncontrado === '&le;' && a < 0) || (operadorEncontrado === '&ge;' && a > 0)) {
+                        solucionTexto = `Todas las x (solución: $(-\\infty, \\infty)$)`;
+                    }
+
                 } else {
                     // Dos raíces reales distintas
                     const x1 = (-b - Math.sqrt(discriminante)) / (2 * a);
                     const x2 = (-b + Math.sqrt(discriminante)) / (2 * a);
                     const menor = Math.min(x1, x2);
                     const mayor = Math.max(x1, x2);
-
-                    graphData = [{ fn: `${a}*x^2 + ${b}*x + ${c}`, color: 'blue' }];
-                    //  graphData.push({ type: 'points', x: [menor, mayor], y: [0, 0], color: 'red' }); // Marcar las raíces
 
                     if (a > 0) { // Parábola abre hacia arriba
                         switch (operadorEncontrado) {
@@ -304,10 +308,11 @@
                     }
                 }
             } else {
-                // Resolver lineal (ax + b operador 0)
-                // En este punto, 'a' es el coeficiente de x, 'b' es la constante.
-                // Si la desigualdad era cuadrática y a=0, se convierte en lineal.
-                if (b === 0) { // Coeficiente de x es 0
+                // Resolver lineal: bx + c operador 0
+                // Consideramos el coeficiente 'b' como el de 'x' y 'c' como la constante.
+                graphEquation = `${b} * x + ${c}`;
+
+                if (b === 0) { // Coeficiente de x es 0 (ej. "5 < 0" o "0x + 5 < 0")
                     if (operadorEncontrado === '<' || operadorEncontrado === '&le;') {
                         if (c < 0 || (operadorEncontrado === '&le;' && c <= 0)) {
                             solucionTexto = 'Todas las x (solución: $(-\\infty, \\infty)$)';
@@ -321,27 +326,25 @@
                             solucionTexto = 'No hay solución (solución: $\\emptyset$)';
                         }
                     }
-                    graphData = [{ fn: `${b}*x + ${c}`, color: 'blue' }]; // Graficar la función lineal
                 } else {
-                    const x = -c / b; // x = -constante / coeficiente_x
-                    graphData = [{ fn: `${b}*x + ${c}`, color: 'blue' }]; // Graficar la función lineal
+                    const x_critical = -c / b; // Punto crítico donde la función lineal cruza el eje x
 
                     switch (operadorEncontrado) {
                         case '<':
-                            if (b > 0) solucionTexto = `x < ${x.toFixed(2)} (solución: $(-\\infty, ${x.toFixed(2)})$)`;
-                            else solucionTexto = `x > ${x.toFixed(2)} (solución: $(${x.toFixed(2)}, \\infty)$)`;
+                            if (b > 0) solucionTexto = `x < ${x_critical.toFixed(2)} (solución: $(-\\infty, ${x_critical.toFixed(2)})$)`;
+                            else solucionTexto = `x > ${x_critical.toFixed(2)} (solución: $(${x_critical.toFixed(2)}, \\infty)$)`;
                             break;
                         case '&le;':
-                            if (b > 0) solucionTexto = `x &le; ${x.toFixed(2)} (solución: $(-\\infty, ${x.toFixed(2)}]$)`;
-                            else solucionTexto = `x &ge; ${x.toFixed(2)} (solución: $[${x.toFixed(2)}, \\infty)$)`;
+                            if (b > 0) solucionTexto = `x &le; ${x_critical.toFixed(2)} (solución: $(-\\infty, ${x_critical.toFixed(2)}]$)`;
+                            else solucionTexto = `x &ge; ${x_critical.toFixed(2)} (solución: $[${x_critical.toFixed(2)}, \\infty)$)`;
                             break;
                         case '>':
-                            if (b > 0) solucionTexto = `x > ${x.toFixed(2)} (solución: $(${x.toFixed(2)}, \\infty)$)`;
-                            else solucionTexto = `x < ${x.toFixed(2)} (solución: $(-\\infty, ${x.toFixed(2)})$)`;
+                            if (b > 0) solucionTexto = `x > ${x_critical.toFixed(2)} (solución: $(${x_critical.toFixed(2)}, \\infty)$)`;
+                            else solucionTexto = `x < ${x_critical.toFixed(2)} (solución: $(-\\infty, ${x_critical.toFixed(2)})$)`;
                             break;
                         case '&ge;':
-                            if (b > 0) solucionTexto = `x &ge; ${x.toFixed(2)} (solución: $[${x.toFixed(2)}, \\infty)$)`;
-                            else solucionTexto = `x &le; ${x.toFixed(2)} (solución: $(-\\infty, ${x.toFixed(2)}]$)`;
+                            if (b > 0) solucionTexto = `x &ge; ${x_critical.toFixed(2)} (solución: $[${x_critical.toFixed(2)}, \\infty)$)`;
+                            else solucionTexto = `x &le; ${x_critical.toFixed(2)} (solución: $(-\\infty, ${x_critical.toFixed(2)}]$)`;
                             break;
                     }
                 }
@@ -351,13 +354,32 @@
             MathJax.typeset(); // Vuelve a renderizar las expresiones LaTeX
 
             // --- PASO 3: GRAFICAR LA FUNCIÓN ---
-            functionPlot({
-                target: '#plot',
-                data: graphData,
-                grid: true,
-                xAxis: { domain: [-10, 10] }, // Ajusta el dominio del eje x según sea necesario
-                yAxis: { domain: [-10, 10] }  // Ajusta el dominio del eje y según sea necesario
-            });
+            try {
+                functionPlot({
+                    target: '#plot',
+                    data: [{
+                        fn: graphEquation,
+                        // Puedes ajustar el color de la gráfica
+                        color: 'blue'
+                    }],
+                    grid: true, // Mostrar cuadrícula
+                    xAxis: {
+                        label: 'x',
+                        domain: [-10, 10] // Rango por defecto del eje X
+                    },
+                    yAxis: {
+                        label: 'f(x)',
+                        domain: [-10, 10] // Rango por defecto del eje Y
+                    },
+                    tip: {
+                        xLine: true, // Mostrar línea de ayuda en x al pasar el ratón
+                        yLine: true // Mostrar línea de ayuda en y al pasar el ratón
+                    }
+                });
+            } catch (e) {
+                errorDiv.innerHTML += '<br>Error al generar la gráfica. Intenta con una desigualdad diferente.';
+                console.error("Error al graficar:", e);
+            }
         }
     </script>
 </body>
