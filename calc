@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resolutor de Desigualdades (Texto Libre)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 700px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .input-group input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-left: 5px solid #007bff;
+            border-radius: 4px;
+            font-size: 1.1em;
+            color: #333;
+            text-align: center;
+            word-wrap: break-word; /* Para asegurar que el texto largo se ajuste */
+        }
+        .result strong {
+            color: #0056b3;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+        ul {
+            text-align: left;
+            margin-top: 10px;
+            list-style-type: disc;
+            padding-left: 20px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Resolutor de Desigualdades (Texto Libre)</h1>
+        <p>Ingresa tu desigualdad lineal o cuadrática. El lado derecho se asume como 0.</p>
+        <p><strong>Ejemplos válidos:</strong></p>
+        <ul>
+            <li>`2x + 5 < 0`</li>
+            <li>`-3x >= 7` (se interpretará como `-3x - 7 >= 0`)</li>
+            <li>`x^2 - 4x + 3 <= 0`</li>
+            <li>`2x^2 > 8` (se interpretará como `2x^2 - 8 > 0`)</li>
+            <li>`-x^2 + 2x < 0`</li>
+        </ul>
+
+        <div class="input-group">
+            <label for="desigualdadInput">Introduce tu desigualdad:</label>
+            <input type="text" id="desigualdadInput" placeholder="Ej: x^2 - 3x + 2 < 0 o 2x + 5 >= 0">
+        </div>
+        <button class="btn" onclick="resolverDesigualdad()">Resolver Desigualdad</button>
+        <div id="resultado" class="result"></div>
+        <div id="error" class="error"></div>
+    </div>
+
+    <script>
+        function resolverDesigualdad() {
+            const inputString = document.getElementById('desigualdadInput').value.trim();
+            const resultadoDiv = document.getElementById('resultado');
+            const errorDiv = document.getElementById('error');
+
+            resultadoDiv.innerHTML = '';
+            errorDiv.innerHTML = '';
+
+            if (!inputString) {
+                errorDiv.innerHTML = 'Por favor, introduce una desigualdad.';
+                return;
+            }
+
+            // --- PASO 1: PARSEAR LA DESIGUALDAD ---
+            // Primero, normalizamos los operadores para facilitar el split
+            let normalizedString = inputString
+                .replace(/<=/g, '&le;') // Reemplazar <= por &le; para MathJax y temporalmente
+                .replace(/>=/g, '&ge;') // Reemplazar >= por &ge; para MathJax y temporalmente
+                .replace(/</g, '<')
+                .replace(/>/g, '>');
+
+            // Buscar el operador de desigualdad
+            const operadores = ['<', '&le;', '>', '&ge;'];
+            let operadorEncontrado = '';
+            let partes = [];
+
+            for (const op of operadores) {
+                if (normalizedString.includes(op)) {
+                    operadorEncontrado = op;
+                    partes = normalizedString.split(op);
+                    break;
+                }
+            }
+
+            if (!operadorEncontrado || partes.length !== 2) {
+                errorDiv.innerHTML = 'Formato de desigualdad inválido. Asegúrate de usar un operador (<, <=, >, >=) y que el lado derecho sea 0 o se pueda interpretar como tal.';
+                return;
+            }
+
+            let ladoIzquierdo = partes[0].trim();
+            let ladoDerecho = partes[1].trim();
+
+            // Asumimos que el lado derecho es 0. Si el usuario pone algo más, lo restamos al lado izquierdo.
+            if (ladoDerecho !== '0' && ladoDerecho !== '') {
+                // Intentamos parsear el lado derecho como una constante
+                const valDerecho = parseFloat(ladoDerecho);
+                if (!isNaN(valDerecho)) {
+                    // Si es un número, lo restamos del lado izquierdo
+                    ladoIzquierdo += ` - ${valDerecho}`;
+                } else {
+                    errorDiv.innerHTML = 'El lado derecho de la desigualdad solo puede ser 0 o un valor constante.';
+                    return;
+                }
+            }
+
+            // Quitar espacios extra y normalizar signos para el parsing
+            ladoIzquierdo = ladoIzquierdo.replace(/\s+/g, '').replace(/\-\-/g, '+').replace(/\+\-/g, '-');
+
+            // Regex para extraer coeficientes: busca (signo opcional)(número opcional)x^(número opcional) o (signo opcional)(número)
+            const regexTerm = /([+-]?\d*\.?\d*)(x(\^2)?)?/g;
+            let a = 0, b = 0, c = 0;
+            let match;
+            let esCuadratica = false;
+
+            while ((match = regexTerm.exec(ladoIzquierdo)) !== null) {
+                let coeficienteStr = match[1];
+                let variable = match[2]; // 'x' o 'x^2'
+                let exponente = match[3]; // '^2'
+
+                let coeficiente = parseFloat(coeficienteStr);
+                if (coeficienteStr === '+' || coeficienteStr === '') coeficiente = 1;
+                if (coeficienteStr === '-') coeficiente = -1;
+                if (coeficienteStr === '') coeficiente = 1; // Para 'x' o 'x^2' sin coeficiente explícito
+
+                if (isNaN(coeficiente)) { // Esto puede pasar si match[1] es solo '+' o '-'
+                    if (coeficienteStr === '+') coeficiente = 1;
+                    else if (coeficienteStr === '-') coeficiente = -1;
+                }
+
+
+                if (variable === 'x^2' || exponente === '^2') {
+                    a += coeficiente;
+                    esCuadratica = true;
+                } else if (variable === 'x') {
+                    b += coeficiente;
+                } else if (match[0] !== '') { // Es un término constante
+                    c += parseFloat(match[0]); // match[0] es el texto completo del término
+                }
+            }
+
+            // Manejo de casos como "x^2" o "-x" sin coeficiente explícito
+            if (ladoIzquierdo.includes('x^2') && a === 0) {
+                 if (ladoIzquierdo.includes('-x^2')) a = -1;
+                 else a = 1;
+                 esCuadratica = true;
+            }
+            if (ladoIzquierdo.includes('x') && !ladoIzquierdo.includes('x^2') && b === 0) {
+                 if (ladoIzquierdo.includes('-x')) b = -1;
+                 else b = 1;
+            }
+            if (!ladoIzquierdo.includes('x') && !ladoIzquierdo.includes('x^2') && c === 0) { // Solo un número, p.ej. "5 < 0"
+                c = parseFloat(ladoIzquierdo) || 0;
+            }
+
+
+            // --- PASO 2: RESOLVER LA DESIGUALDAD ---
+            let solucionTexto = '';
+
+            if (esCuadratica && a !== 0) {
+                // Resolver cuadrática (ax² + bx + c operador 0)
+                const discriminante = b * b - 4 * a * c;
+
+                if (discriminante < 0) {
+                    // No hay raíces reales
+                    const isPositive = (a > 0 && (operadorEncontrado === '>' || operadorEncontrado === '&ge;')) || (a < 0 && (operadorEncontrado === '<' || operadorEncontrado === '&le;'));
+                    const isNegative = (a < 0 && (operadorEncontrado === '>' || operadorEncontrado === '&ge;')) || (a > 0 && (operadorEncontrado === '<' || operadorEncontrado === '&le;'));
+
+                    if (isPositive) {
+                        solucionTexto = 'Todas las x (solución: $(-\\infty, \\infty)$)';
+                    } else if (isNegative) {
+                        solucionTexto = 'No hay solución (solución: $\\emptyset$)';
+                    } else {
+                        solucionTexto = 'No hay solución (solución: $\\emptyset$)';
+                    }
+                } else if (discriminante === 0) {
+                    // Una raíz real (doble)
+                    const x0 = -b / (2 * a);
+                    if ((operadorEncontrado === '<' && a > 0) || (operadorEncontrado === '>' && a < 0)) {
+                        solucionTexto = 'No hay solución (solución: $\\emptyset$)';
+                    } else if ((operadorEncontrado === '&le;' && a > 0) || (operadorEncontrado === '&ge;' && a < 0)) {
+                        solucionTexto = `x = ${x0.toFixed(2)} (solución: $\{${x0.toFixed(2)}\}$)`;
+                    } else { // >, >=
+                         solucionTexto = `Todas las x excepto x = ${x0.toFixed(2)} (solución: $(-\\infty, ${x0.toFixed(2)}) \\cup (${x0.toFixed(2)}, \\infty)$)`;
+                    }
+                     if (operadorEncontrado === '&le;' && a < 0) solucionTexto = `Todas las x (solución: $(-\\infty, \\infty)$)`;
+                     if (operadorEncontrado === '&ge;' && a > 0) solucionTexto = `Todas las x (solución: $(-\\infty, \\infty)$)`;
+
+
+                } else {
+                    // Dos raíces reales distintas
+                    const x1 = (-b - Math.sqrt(discriminante)) / (2 * a);
+                    const x2 = (-b + Math.sqrt(discriminante)) / (2 * a);
+                    const menor = Math.min(x1, x2);
+                    const mayor = Math.max(x1, x2);
+
+                    if (a > 0) { // Parábola abre hacia arriba
+                        switch (operadorEncontrado) {
+                            case '<':
+                                solucionTexto = `${menor.toFixed(2)} < x < ${mayor.toFixed(2)} (solución: $(${menor.toFixed(2)}, ${mayor.toFixed(2)})$)`;
+                                break;
+                            case '&le;':
+                                solucionTexto = `${menor.toFixed(2)} &le; x &le; ${mayor.toFixed(2)} (solución: $[${menor.toFixed(2)}, ${mayor.toFixed(2)}]$)`;
+                                break;
+                            case '>':
+                                solucionTexto = `x < ${menor.toFixed(2)} o x > ${mayor.toFixed(2)} (solución: $(-\\infty, ${menor.toFixed(2)}) \\cup (${mayor.toFixed(2)}, \\infty)$)`;
+                                break;
+                            case '&ge;':
+                                solucionTexto = `x &le; ${menor.toFixed(2)} o x &ge; ${mayor.toFixed(2)} (solución: $(-\\infty, ${menor.toFixed(2)}] \\cup [${mayor.toFixed(2)}, \\infty)$)`;
+                                break;
+                        }
+                    } else { // Parábola abre hacia abajo
+                        switch (operadorEncontrado) {
+                            case '<':
+                                solucionTexto = `x < ${menor.toFixed(2)} o x > ${mayor.toFixed(2)} (solución: $(-\\infty, ${menor.toFixed(2)}) \\cup (${mayor.toFixed(2)}, \\infty)$)`;
+                                break;
+                            case '&le;':
+                                solucionTexto = `x &le; ${menor.toFixed(2)} o x &ge; ${mayor.toFixed(2)} (solución: $(-\\infty, ${menor.toFixed(2)}] \\cup [${mayor.toFixed(2)}, \\infty)$)`;
+                                break;
+                            case '>':
+                                solucionTexto = `${menor.toFixed(2)} < x < ${mayor.toFixed(2)} (solución: $(${menor.toFixed(2)}, ${mayor.toFixed(2)})$)`;
+                                break;
+                            case '&ge;':
+                                solucionTexto = `${menor.toFixed(2)} &le; x &le; ${mayor.toFixed(2)} (solución: $[${menor.toFixed(2)}, ${mayor.toFixed(2)}]$)`;
+                                break;
+                        }
+                    }
+                }
+            } else {
+                // Resolver lineal (ax + b operador 0)
+                // En este punto, 'a' es el coeficiente de x, 'b' es la constante.
+                // Si la desigualdad era cuadrática y a=0, se convierte en lineal.
+                if (b === 0) { // Coeficiente de x es 0
+                    if (operadorEncontrado === '<' || operadorEncontrado === '&le;') {
+                        if (c < 0 || (operadorEncontrado === '&le;' && c <= 0)) {
+                            solucionTexto = 'Todas las x (solución: $(-\\infty, \\infty)$)';
+                        } else {
+                            solucionTexto = 'No hay solución (solución: $\\emptyset$)';
+                        }
+                    } else if (operadorEncontrado === '>' || operadorEncontrado === '&ge;') {
+                        if (c > 0 || (operadorEncontrado === '&ge;' && c >= 0)) {
+                            solucionTexto = 'Todas las x (solución: $(-\\infty, \\infty)$)';
+                        } else {
+                            solucionTexto = 'No hay solución (solución: $\\emptyset$)';
+                        }
+                    }
+                } else {
+                    const x = -c / b; // x = -constante / coeficiente_x
+
+                    switch (operadorEncontrado) {
+                        case '<':
+                            if (b > 0) solucionTexto = `x < ${x.toFixed(2)} (solución: $(-\\infty, ${x.toFixed(2)})$)`;
+                            else solucionTexto = `x > ${x.toFixed(2)} (solución: $(${x.toFixed(2)}, \\infty)$)`;
+                            break;
+                        case '&le;':
+                            if (b > 0) solucionTexto = `x &le; ${x.toFixed(2)} (solución: $(-\\infty, ${x.toFixed(2)}]$)`;
+                            else solucionTexto = `x &ge; ${x.toFixed(2)} (solución: $[${x.toFixed(2)}, \\infty)$)`;
+                            break;
+                        case '>':
+                            if (b > 0) solucionTexto = `x > ${x.toFixed(2)} (solución: $(${x.toFixed(2)}, \\infty)$)`;
+                            else solucionTexto = `x < ${x.toFixed(2)} (solución: $(-\\infty, ${x.toFixed(2)})$)`;
+                            break;
+                        case '&ge;':
+                            if (b > 0) solucionTexto = `x &ge; ${x.toFixed(2)} (solución: $[${x.toFixed(2)}, \\infty)$)`;
+                            else solucionTexto = `x &le; ${x.toFixed(2)} (solución: $(-\\infty, ${x.toFixed(2)}]$)`;
+                            break;
+                    }
+                }
+            }
+
+            resultadoDiv.innerHTML = `<strong>Solución:</strong> ${solucionTexto}`;
+            MathJax.typeset(); // Vuelve a renderizar las expresiones LaTeX
+        }
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>
