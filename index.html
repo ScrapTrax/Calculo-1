@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resolución de Desigualdades</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinea al inicio para que el contenido no se centre verticalmente de forma rara */
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            padding: 20px;
+            box-sizing: border-box; /* Incluye padding en el tamaño total */
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 700px;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .input-group input[type="number"],
+        .input-group select {
+            width: calc(100% - 22px); /* Ancho completo menos padding y borde */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .input-group input[type="number"] {
+            -moz-appearance: textfield; /* Elimina flechas en Firefox */
+        }
+        .input-group input[type="number"]::-webkit-outer-spin-button,
+        .input-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .equation-layout {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Espacio entre los elementos */
+            margin-bottom: 15px;
+            flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
+        }
+        .equation-layout input {
+            flex: 1; /* Permite que los inputs tomen espacio disponible */
+            min-width: 50px; /* Ancho mínimo para inputs pequeños */
+        }
+        .operator-select {
+            width: auto; /* Ajusta el ancho automáticamente */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-left: 5px solid #007bff;
+            border-radius: 4px;
+            font-size: 1.1em;
+            color: #333;
+            text-align: center;
+        }
+        .result strong {
+            color: #0056b3;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Resolutor de Desigualdades</h1>
+        <p>Introduce los coeficientes para resolver tus desigualdades.</p>
+
+        ---
+
+        <h2>Desigualdad Lineal (ax + b &lt;/>= 0)</h2>
+        <div class="equation-layout">
+            <div class="input-group">
+                <label for="a_lineal">a:</label>
+                <input type="number" id="a_lineal" value="1">
+            </div>
+            <span>x + </span>
+            <div class="input-group">
+                <label for="b_lineal">b:</label>
+                <input type="number" id="b_lineal" value="0">
+            </div>
+            <select id="operador_lineal" class="operator-select">
+                <option value="<">&lt;</option>
+                <option value="<=">&le;</option>
+                <option value=">">&gt;</option>
+                <option value=">=">&ge;</option>
+            </select>
+            <span>0</span>
+        </div>
+        <button class="btn" onclick="resolverLineal()">Resolver Lineal</button>
+        <div id="resultado_lineal" class="result"></div>
+        <div id="error_lineal" class="error"></div>
+
+        ---
+
+        <h2>Desigualdad Cuadrática (ax² + bx + c &lt;/>= 0)</h2>
+        <div class="equation-layout">
+            <div class="input-group">
+                <label for="a_cuadratica">a:</label>
+                <input type="number" id="a_cuadratica" value="1">
+            </div>
+            <span>x² + </span>
+            <div class="input-group">
+                <label for="b_cuadratica">b:</label>
+                <input type="number" id="b_cuadratica" value="0">
+            </div>
+            <span>x + </span>
+            <div class="input-group">
+                <label for="c_cuadratica">c:</label>
+                <input type="number" id="c_cuadratica" value="0">
+            </div>
+            <select id="operador_cuadratica" class="operator-select">
+                <option value="<">&lt;</option>
+                <option value="<=">&le;</option>
+                <option value=">">&gt;</option>
+                <option value=">=">&ge;</option>
+            </select>
+            <span>0</span>
+        </div>
+        <button class="btn" onclick="resolverCuadratica()">Resolver Cuadrática</button>
+        <div id="resultado_cuadratica" class="result"></div>
+        <div id="error_cuadratica" class="error"></div>
+    </div>
+
+    <script>
+        function resolverLineal() {
+            const a = parseFloat(document.getElementById('a_lineal').value);
+            const b = parseFloat(document.getElementById('b_lineal').value);
+            const operador = document.getElementById('operador_lineal').value;
+            const resultadoDiv = document.getElementById('resultado_lineal');
+            const errorDiv = document.getElementById('error_lineal');
+
+            resultadoDiv.innerHTML = '';
+            errorDiv.innerHTML = '';
+
+            if (isNaN(a) || isNaN(b)) {
+                errorDiv.innerHTML = 'Por favor, introduce valores numéricos válidos.';
+                return;
+            }
+
+            let solucion = '';
+
+            if (a === 0) {
+                // Caso degenerado: 0x + b </>= 0
+                if (operador === '<' || operador === '<=') {
+                    if (b < 0 || (operador === '<=' && b <= 0)) {
+                        solucion = 'Todas las x (solución: $(-\infty, \infty)$)';
+                    } else {
+                        solucion = 'No hay solución (solución: $\emptyset$)';
+                    }
+                } else if (operador === '>' || operador === '>=') {
+                    if (b > 0 || (operador === '>=' && b >= 0)) {
+                        solucion = 'Todas las x (solución: $(-\infty, \infty)$)';
+                    } else {
+                        solucion = 'No hay solución (solución: $\emptyset$)';
+                    }
+                }
+            } else {
+                let x;
+                switch (operador) {
+                    case '<':
+                        x = -b / a;
+                        if (a > 0) solucion = `x < ${x.toFixed(2)} (solución: $(-\infty, ${x.toFixed(2)})$)`;
+                        else solucion = `x > ${x.toFixed(2)} (solución: $(${x.toFixed(2)}, \infty)$)`;
+                        break;
+                    case '<=':
+                        x = -b / a;
+                        if (a > 0) solucion = `x &le; ${x.toFixed(2)} (solución: $(-\infty, ${x.toFixed(2)}]$)`;
+                        else solucion = `x &ge; ${x.toFixed(2)} (solución: $[${x.toFixed(2)}, \infty)$)`;
+                        break;
+                    case '>':
+                        x = -b / a;
+                        if (a > 0) solucion = `x > ${x.toFixed(2)} (solución: $(${x.toFixed(2)}, \infty)$)`;
+                        else solucion = `x < ${x.toFixed(2)} (solución: $(-\infty, ${x.toFixed(2)})$)`;
+                        break;
+                    case '>=':
+                        x = -b / a;
+                        if (a > 0) solucion = `x &ge; ${x.toFixed(2)} (solución: $[${x.toFixed(2)}, \infty)$)`;
+                        else solucion = `x &le; ${x.toFixed(2)} (solución: $(-\infty, ${x.toFixed(2)}]$)`;
+                        break;
+                }
+            }
+            resultadoDiv.innerHTML = `<strong>Solución:</strong> ${solucion}`;
+            MathJax.typeset(); // Vuelve a renderizar las expresiones LaTeX
+        }
+
+        function resolverCuadratica() {
+            const a = parseFloat(document.getElementById('a_cuadratica').value);
+            const b = parseFloat(document.getElementById('b_cuadratica').value);
+            const c = parseFloat(document.getElementById('c_cuadratica').value);
+            const operador = document.getElementById('operador_cuadratica').value;
+            const resultadoDiv = document.getElementById('resultado_cuadratica');
+            const errorDiv = document.getElementById('error_cuadratica');
+
+            resultadoDiv.innerHTML = '';
+            errorDiv.innerHTML = '';
+
+            if (isNaN(a) || isNaN(b) || isNaN(c)) {
+                errorDiv.innerHTML = 'Por favor, introduce valores numéricos válidos.';
+                return;
+            }
+
+            if (a === 0) {
+                errorDiv.innerHTML = 'Esto es una desigualdad lineal, no cuadrática (a no puede ser 0).';
+                return;
+            }
+
+            const discriminante = b * b - 4 * a * c;
+            let solucion = '';
+
+            if (discriminante < 0) {
+                // No hay raíces reales
+                const isPositive = (a > 0 && (operador === '>' || operador === '>=')) || (a < 0 && (operador === '<' || operador === '<='));
+                const isNegative = (a < 0 && (operador === '>' || operador === '>=')) || (a > 0 && (operador === '<' || operador === '<='));
+
+                if (isPositive) {
+                    solucion = 'Todas las x (solución: $(-\infty, \infty)$)';
+                } else if (isNegative) {
+                    solucion = 'No hay solución (solución: $\emptyset$)';
+                } else {
+                    solucion = 'No hay solución (solución: $\emptyset$)'; // En casos de a > 0 y < o <=, etc.
+                }
+            } else if (discriminante === 0) {
+                // Una raíz real (doble)
+                const x0 = -b / (2 * a);
+                switch (operador) {
+                    case '<':
+                    case '>':
+                        solucion = `Todas las x excepto x = ${x0.toFixed(2)} (solución: $(-\infty, ${x0.toFixed(2)}) \cup (${x0.toFixed(2)}, \infty)$)`;
+                        break;
+                    case '<=':
+                    case '>=':
+                        solucion = 'Todas las x (solución: $(-\infty, \infty)$)';
+                        break;
+                }
+                 if ((a > 0 && (operador === '<' || operador === '<=')) || (a < 0 && (operador === '>' || operador === '>='))) {
+                    solucion = `x = ${x0.toFixed(2)} (solución: $\{${x0.toFixed(2)}\}$)` ; // Solo el punto, o ninguna solución
+                    if (operador === '<' || operador === '>') solucion = 'No hay solución (solución: $\emptyset$)';
+                }
+            } else {
+                // Dos raíces reales distintas
+                const x1 = (-b - Math.sqrt(discriminante)) / (2 * a);
+                const x2 = (-b + Math.sqrt(discriminante)) / (2 * a);
+                const menor = Math.min(x1, x2);
+                const mayor = Math.max(x1, x2);
+
+                if (a > 0) { // Parábola abre hacia arriba
+                    switch (operador) {
+                        case '<':
+                            solucion = `${menor.toFixed(2)} < x < ${mayor.toFixed(2)} (solución: $(${menor.toFixed(2)}, ${mayor.toFixed(2)})$)`;
+                            break;
+                        case '<=':
+                            solucion = `${menor.toFixed(2)} &le; x &le; ${mayor.toFixed(2)} (solución: $[${menor.toFixed(2)}, ${mayor.toFixed(2)}]$)`;
+                            break;
+                        case '>':
+                            solucion = `x < ${menor.toFixed(2)} o x > ${mayor.toFixed(2)} (solución: $(-\infty, ${menor.toFixed(2)}) \cup (${mayor.toFixed(2)}, \infty)$)`;
+                            break;
+                        case '>=':
+                            solucion = `x &le; ${menor.toFixed(2)} o x &ge; ${mayor.toFixed(2)} (solución: $(-\infty, ${menor.toFixed(2)}] \cup [${mayor.toFixed(2)}, \infty)$)`;
+                            break;
+                    }
+                } else { // Parábola abre hacia abajo
+                    switch (operador) {
+                        case '<':
+                            solucion = `x < ${menor.toFixed(2)} o x > ${mayor.toFixed(2)} (solución: $(-\infty, ${menor.toFixed(2)}) \cup (${mayor.toFixed(2)}, \infty)$)`;
+                            break;
+                        case '<=':
+                            solucion = `x &le; ${menor.toFixed(2)} o x &ge; ${mayor.toFixed(2)} (solución: $(-\infty, ${menor.toFixed(2)}] \cup [${mayor.toFixed(2)}, \infty)$)`;
+                            break;
+                        case '>':
+                            solucion = `${menor.toFixed(2)} < x < ${mayor.toFixed(2)} (solución: $(${menor.toFixed(2)}, ${mayor.toFixed(2)})$)`;
+                            break;
+                        case '>=':
+                            solucion = `${menor.toFixed(2)} &le; x &le; ${mayor.toFixed(2)} (solución: $[${menor.toFixed(2)}, ${mayor.toFixed(2)}]$)`;
+                            break;
+                    }
+                }
+            }
+            resultadoDiv.innerHTML = `<strong>Solución:</strong> ${solucion}`;
+            MathJax.typeset(); // Vuelve a renderizar las expresiones LaTeX
+        }
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>
