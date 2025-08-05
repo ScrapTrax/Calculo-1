@@ -6,23 +6,27 @@
   <title>Derivadas por el Método Largo</title>
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 30px; }
-    .container { background: white; padding: 20px; border-radius: 10px; max-width: 800px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .container { background: white; padding: 20px; border-radius: 10px; max-width: 900px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     input, button { padding: 10px; font-size: 16px; width: 100%; margin-top: 10px; }
     button { background: #007BFF; color: white; border: none; cursor: pointer; }
     button:hover { background: #0056b3; }
     #result { margin-top: 30px; background: #e6f9ff; padding: 20px; border-radius: 10px; }
+    canvas { margin-top: 30px; background: #fff; border: 1px solid #ccc; padding: 10px; border-radius: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Calculadora de Derivadas - Método Largo</h1>
+    <h1>Calculadora de Derivadas - Método Largo + Gráfica</h1>
     <p>Escribe una función polinómica como <code>3x^2 + 2x</code>:</p>
     <input type="text" id="funcion" placeholder="Ejemplo: x^2 + 2x + 1">
     <button onclick="resolver()">Resolver derivada paso a paso</button>
 
     <div id="result"></div>
+
+    <canvas id="grafica" width="800" height="400"></canvas>
   </div>
 
   <script>
@@ -37,6 +41,8 @@
       `;
 
       let derivadaFinal = [];
+      let funcionOriginal = x => 0;
+      let funcionDerivada = x => 0;
 
       terminos.forEach((termino, i) => {
         let coef = 1, exp = 1;
@@ -48,6 +54,7 @@
             <p>Es constante, entonces:</p>
             $$\\frac{d}{dx}(${coef}) = 0$$
           `;
+          funcionOriginal = sumFuncs(funcionOriginal, () => coef);
           return;
         }
 
@@ -83,7 +90,12 @@
           $$\\lim_{h \\to 0} (${mostrarSimplificado(coef, exp)}) = ${coef * exp}x^{${exp-1}}$$
         `;
 
-        derivadaFinal.push(`${coef * exp}x${exp-1 === 1 ? '' : exp-1 === 0 ? '' : '^' + (exp-1)}`);
+        const nuevaDerivada = `${coef * exp}x${exp-1 === 1 ? '' : exp-1 === 0 ? '' : '^' + (exp-1)}`;
+        derivadaFinal.push(nuevaDerivada);
+
+        // Funciones para graficar
+        funcionOriginal = sumFuncs(funcionOriginal, x => coef * Math.pow(x, exp));
+        funcionDerivada = sumFuncs(funcionDerivada, x => coef * exp * Math.pow(x, exp - 1));
       });
 
       pasos += `<h2>Resultado final:</h2>
@@ -91,10 +103,11 @@
 
       resultDiv.innerHTML = pasos;
       MathJax.typeset();
+
+      graficar(funcionOriginal, funcionDerivada);
     }
 
     function expandirBinomio(a, n) {
-      // Solo hasta n = 3 para simplicidad
       if (n === 1) return `${a}x + ${a}h`;
       if (n === 2) return `${a}x^2 + ${2*a}xh + ${a}h^2`;
       if (n === 3) return `${a}x^3 + ${3*a}x^2h + ${3*a}xh^2 + ${a}h^3`;
@@ -106,6 +119,61 @@
       if (n === 2) return `${2*a}x + ${a}h`;
       if (n === 3) return `${3*a}x^2 + ${3*a}xh + ${a}h^2`;
       return `${a * n}x^${n - 1}`;
+    }
+
+    function sumFuncs(f1, f2) {
+      return function (x) {
+        return f1(x) + f2(x);
+      };
+    }
+
+    function graficar(funcionOriginal, funcionDerivada) {
+      const labels = [], datosOriginal = [], datosDerivada = [];
+
+      for (let x = -10; x <= 10; x += 0.5) {
+        labels.push(x.toFixed(2));
+        datosOriginal.push(funcionOriginal(x));
+        datosDerivada.push(funcionDerivada(x));
+      }
+
+      const ctx = document.getElementById('grafica').getContext('2d');
+      if (window.miGrafica) window.miGrafica.destroy();
+
+      window.miGrafica = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'f(x)',
+              data: datosOriginal,
+              borderWidth: 2,
+              fill: false,
+              borderColor: 'blue'
+            },
+            {
+              label: "f'(x)",
+              data: datosDerivada,
+              borderWidth: 2,
+              fill: false,
+              borderColor: 'red'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'x' } },
+            y: { title: { display: true, text: 'f(x), f\'(x)' } }
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: 'Gráfica de la Función y su Derivada'
+            }
+          }
+        }
+      });
     }
   </script>
 </body>
