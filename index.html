@@ -1,147 +1,111 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Derivadas</title>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; max-width: 800px; margin-left: auto; margin-right: auto; background-color: #f4f4f4; }
-        .container { background-color: #ffffff; padding: 25px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; }
-        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
-        .input-group { margin-bottom: 20px; }
-        .input-group label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .input-group input { width: calc(100% - 22px); padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-        .btn { display: inline-block; padding: 10px 20px; background-color: #007BFF; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        .btn:hover { background-color: #0056b3; }
-        #explanation { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #e9f5ff; border-left: 4px solid #2196F3; }
-        #result { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #d4edda; border-left: 4px solid #28a745; font-size: 1.1em; font-weight: bold; }
-    </style>
-</head>
-<body>
+<!-- Sigue usando tu mismo código base, pero reemplaza tu <script> con el siguiente -->
 
-    <div class="container">
-        <h1>Calculadora de Derivadas (Demostración)</h1>
-        <p>Ingresa una función simple, como `x^2 + 3x`, y te mostraré el resultado de su derivada y el proceso para una función de ejemplo.</p>
+<script>
+    function resolverDerivada() {
+        const funcionStr = document.getElementById('funcionInput').value.trim();
+        const resultadoDiv = document.getElementById('resultadoTexto');
+        const explicacionDiv = document.getElementById('explanation');
 
-        <div class="input-group">
-            <label for="funcionInput">Función $f(x) = $</label>
-            <input type="text" id="funcionInput" placeholder="Ej: x^2 + 3x">
-            <button class="btn" onclick="resolverDerivada()">Resolver</button>
-        </div>
+        if (funcionStr === '') {
+            resultadoDiv.innerHTML = 'Por favor, ingresa una función.';
+            return;
+        }
 
-        <hr>
+        try {
+            const terminos = funcionStr.split('+').map(t => t.trim()).filter(t => t);
+            let derivadaTerminos = [];
+            let pasosExplicacion = '';
 
-        <div id="explanation">
-            <h2>1. Proceso de la Derivada por Límites (Método Largo)</h2>
-            <p>A continuación se muestra el proceso detallado para una función de ejemplo, $f(x) = x^2$.</p>
-            <p>La fórmula del método largo es:</p>
-            <p class="math-formula">$$f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$</p>
-            
-            <h3>Paso a paso para $f(x) = x^2$:</h3>
-            <ul>
-                <li><strong>1. Evaluar $f(x+h)$</strong>: $f(x+h) = (x+h)^2 = x^2 + 2xh + h^2$</li>
-                <li><strong>2. Sustituir en la fórmula</strong>: $$ \lim_{h \to 0} \frac{(x^2 + 2xh + h^2) - x^2}{h} $$</li>
-                <li><strong>3. Simplificar</strong>: $$ \lim_{h \to 0} \frac{2xh + h^2}{h} = \lim_{h \to 0} \frac{h(2x + h)}{h} $$</li>
-                <li><strong>4. Evaluar el límite</strong>: $$ \lim_{h \to 0} (2x + h) = 2x $$</li>
-            </ul>
-        </div>
-        
-        <hr>
+            terminos.forEach((termino, i) => {
+                termino = termino.replace(/\s/g, '');
+                let coef = 1, exp = 1;
 
-        <div id="result">
-            <h2>2. Resultado de tu Derivada</h2>
-            <p id="resultadoTexto">Ingresa una función y presiona "Resolver" para ver el resultado.</p>
-        </div>
-
-    </div>
-
-    <script>
-        function resolverDerivada() {
-            const funcionStr = document.getElementById('funcionInput').value.trim();
-            const resultadoDiv = document.getElementById('resultadoTexto');
-
-            if (funcionStr === '') {
-                resultadoDiv.innerHTML = 'Por favor, ingresa una función.';
-                return;
-            }
-
-            // Esta es la parte del código que simula la resolución "corta"
-            // Nota: Esto no resuelve por el método largo, solo aplica la regla de la potencia.
-            try {
-                let derivada = '';
-                const terminos = funcionStr.split('+').map(t => t.trim()).filter(t => t);
-                let derivadaTerminos = [];
-
-                terminos.forEach(termino => {
-                    termino = termino.replace(/\s/g, ''); // Eliminar espacios
-
-                    // Manejar constante
-                    if (!termino.includes('x')) {
-                        // La derivada de una constante es 0
-                        derivadaTerminos.push('0');
-                        return;
-                    }
-
-                    // Manejar x
-                    if (termino === 'x') {
-                        derivadaTerminos.push('1');
-                        return;
-                    }
-
-                    // Manejar x^n
-                    if (termino.includes('^')) {
-                        const partes = termino.split('^');
-                        let base = partes[0];
-                        const exponente = parseInt(partes[1]);
-                        let coeficiente = 1;
-
-                        if (base.includes('x')) {
-                            const match = base.match(/(\d*)x/);
-                            if (match && match[1]) {
-                                coeficiente = parseInt(match[1]);
-                            }
-                        }
-
-                        const nuevoCoeficiente = coeficiente * exponente;
-                        const nuevoExponente = exponente - 1;
-
-                        if (nuevoExponente === 0) {
-                            derivadaTerminos.push(nuevoCoeficiente.toString());
-                        } else if (nuevoExponente === 1) {
-                            derivadaTerminos.push(`${nuevoCoeficiente}x`);
-                        } else {
-                            derivadaTerminos.push(`${nuevoCoeficiente}x^${nuevoExponente}`);
-                        }
-                        return;
-                    }
-
-                    // Manejar ax (ej: 3x)
-                    if (termino.includes('x')) {
-                        const match = termino.match(/(\d*)x/);
-                        if (match && match[1]) {
-                            derivadaTerminos.push(match[1]);
-                        } else {
-                           derivadaTerminos.push('1');
-                        }
-                    }
-
-                });
-
-                derivada = derivadaTerminos.filter(t => t !== '0').join(' + ');
-                if (derivada === '') {
-                    derivada = '0';
+                // Constantes: derivada 0
+                if (!termino.includes('x')) {
+                    pasosExplicacion += `
+                        <h3>Término ${i+1}: ${termino}</h3>
+                        <p>Este es un número constante, por lo tanto:</p>
+                        $$\\frac{d}{dx}(${termino}) = 0$$
+                    `;
+                    return;
                 }
 
-                // Mostrar el resultado con MathJax
-                resultadoDiv.innerHTML = `La derivada de $f(x) = ${funcionStr}$ es: <br> $$f'(x) = ${derivada}$$`;
+                // Solo 'x'
+                if (termino === 'x') {
+                    coef = 1; exp = 1;
+                }
 
-            } catch (error) {
-                resultadoDiv.innerHTML = 'Error al procesar la función. Por favor, asegúrate de usar un formato simple como `ax^n + bx`.';
-            }
+                // ax
+                else if (/^\d+x$/.test(termino)) {
+                    coef = parseInt(termino);
+                    exp = 1;
+                }
+
+                // x^n
+                else if (/^x\^\d+$/.test(termino)) {
+                    coef = 1;
+                    exp = parseInt(termino.split('^')[1]);
+                }
+
+                // ax^n
+                else if (/^\d+x\^\d+$/.test(termino)) {
+                    coef = parseInt(termino.split('x')[0]);
+                    exp = parseInt(termino.split('^')[1]);
+                }
+
+                // Si no se reconoce
+                else {
+                    throw new Error("Formato no reconocido.");
+                }
+
+                // Derivada con regla corta
+                const nuevoCoef = coef * exp;
+                const nuevoExp = exp - 1;
+                if (nuevoExp === 0) {
+                    derivadaTerminos.push(`${nuevoCoef}`);
+                } else if (nuevoExp === 1) {
+                    derivadaTerminos.push(`${nuevoCoef}x`);
+                } else {
+                    derivadaTerminos.push(`${nuevoCoef}x^${nuevoExp}`);
+                }
+
+                // Explicación paso a paso
+                pasosExplicacion += `
+                    <h3>Término ${i+1}: ${coef === 1 ? '' : coef}x^${exp}</h3>
+                    <p>Usamos la fórmula del límite:</p>
+                    $$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$
+                    <p>1. Calculamos \( f(x+h) \):</p>
+                    $$f(x+h) = ${coef}(x+h)^${exp}$$
+                    <p>2. Expandimos usando binomio:</p>
+                    $$= ${expandirBinomio(coef, exp)}$$
+                    <p>3. Sustituimos en la fórmula:</p>
+                    $$\\frac{(${expandirBinomio(coef, exp)} - ${coef}x^${exp})}{h}$$
+                    <p>4. Simplificamos y aplicamos el límite:</p>
+                    $$\\Rightarrow ${nuevoCoef}${nuevoExp > 0 ? 'x' + (nuevoExp > 1 ? '^' + nuevoExp : '') : ''}$$
+                `;
+            });
+
+            const derivadaFinal = derivadaTerminos.filter(t => t !== '0').join(' + ') || '0';
+
+            resultadoDiv.innerHTML = `La derivada de $f(x) = ${funcionStr}$ es: <br> $$f'(x) = ${derivadaFinal}$$`;
+            explicacionDiv.innerHTML = `
+                <h2>1. Proceso de la Derivada por Límites (Método Largo)</h2>
+                <p>Aplicamos el método del cociente de diferencias:</p>
+                <p class="math-formula">$$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$</p>
+                ${pasosExplicacion}
+            `;
+            MathJax.typeset();
+        } catch (e) {
+            resultadoDiv.innerHTML = 'Error al procesar la función. Usa solo funciones polinómicas como `3x^2 + 2x + 1`.';
+
         }
-    </script>
-</body>
-</html>
+    }
+
+    function expandirBinomio(coef, exp) {
+        if (exp === 0) return coef.toString();
+        if (exp === 1) return `${coef}x + ${coef}h`;
+        if (exp === 2) return `${coef}x^2 + ${2 * coef}xh + ${coef}h^2`;
+        if (exp === 3) return `${coef}x^3 + ${3 * coef}x^2h + ${3 * coef}xh^2 + ${coef}h^3`;
+        return `${coef}(x+h)^${exp}`;
+    }
+</script>
