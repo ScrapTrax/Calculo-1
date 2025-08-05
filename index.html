@@ -1,264 +1,231 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Derivada Paso a Paso usando Límite del Cociente de Diferencias</title>
-
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0; padding: 0;
-      background: #f9fbfd;
-      color: #333;
-    }
-    header {
-      background-color: #4a6ef2;
-      color: white;
-      text-align: center;
-      padding: 1.5rem 1rem;
-      font-weight: 700;
-      font-size: 1.6rem;
-    }
-    main {
-      max-width: 900px;
-      margin: 2rem auto;
-      background: white;
-      padding: 1.5rem 2rem;
-      border-radius: 10px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.1);
-    }
-    label {
-      font-size: 1.1rem;
-      font-weight: 600;
-      display: block;
-      margin-bottom: 0.3rem;
-    }
-    input {
-      width: 100%;
-      font-size: 1.1rem;
-      padding: 0.6rem 0.8rem;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      transition: border-color 0.3s;
-    }
-    input:focus {
-      border-color: #4a6ef2;
-      outline: none;
-    }
-    button {
-      background-color: #4a6ef2;
-      border: none;
-      color: white;
-      font-size: 1.2rem;
-      padding: 0.7rem 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      width: 100%;
-    }
-    button:hover {
-      background-color: #365ac6;
-    }
-    h2 {
-      margin-top: 2rem;
-      font-weight: 700;
-      border-bottom: 2px solid #4a6ef2;
-      padding-bottom: 0.4rem;
-    }
-    #pasos {
-      font-size: 1.15rem;
-      line-height: 1.5;
-      margin-top: 1rem;
-      background: #f0f4ff;
-      padding: 1rem;
-      border-radius: 10px;
-      min-height: 180px;
-    }
-    #plot {
-      margin-top: 2rem;
-    }
-    @media (max-width: 600px) {
-      main {
-        margin: 1rem;
-        padding: 1rem;
-      }
-      button {
-        font-size: 1rem;
-      }
-    }
-  </style>
-
-  <!-- Librerías -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"
-    onload="renderMathInElement(document.body);"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calculadora de Derivadas por Cociente de Diferencias al Cuadrado</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px; 
+    background: #f0f4f8;
+    color: #222;
+  }
+  h1 {
+    text-align: center;
+    color: #0057b8;
+  }
+  label, input, button {
+    font-size: 1.1rem;
+  }
+  input {
+    width: 300px;
+    padding: 8px;
+    margin: 10px 0 20px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  button {
+    background-color: #0057b8;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #003f7d;
+  }
+  #resultado, #explicacion {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+  }
+  #grafica {
+    margin-top: 30px;
+  }
+</style>
 </head>
-
 <body>
-  <header>
-    Calculadora de Derivadas Paso a Paso <br> <small>Usando el límite del cociente de diferencias</small>
-  </header>
 
-  <main>
-    <label for="funcion">Ingresa una función f(x):</label>
-    <input type="text" id="funcion" placeholder="Ejemplo: x^2 + 3*x - sin(x)" autocomplete="off" />
-    <button onclick="calcularDerivada()">Calcular derivada</button>
+<h1>Calculadora de Derivadas: Cociente de Diferencias al Cuadrado</h1>
 
-    <h2>Pasos del desarrollo:</h2>
-    <div id="pasos"></div>
+<label for="funcion">Ingresa la función f(x):</label><br/>
+<input type="text" id="funcion" placeholder="Ejemplo: x^2 + 3*x - 5, sin(x), ln(x)" />
+<br/>
+<label for="punto">Derivar en x = </label>
+<input type="number" id="punto" value="1" step="0.01" />
+<br/>
+<button onclick="calcularDerivada()">Calcular Derivada</button>
 
-    <h2>Gráfica de f(x) y f'(x):</h2>
-    <div id="plot"></div>
-  </main>
+<div id="resultado"></div>
+<div id="explicacion"></div>
+<div id="grafica"></div>
 
-  <script>
-    // Mostrar contenido con KaTeX en el contenedor indicado, agregando y renderizando
-    function mostrarLatex(latex, contenedorId) {
-      const cont = document.getElementById(contenedorId);
-      cont.innerHTML += `<p>\\[${latex}\\]</p>`;
-      renderMathInElement(cont, { throwOnError: false });
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+  // Función para evaluar expresiones matemáticas seguras usando math.js (podemos usar con eval pero es riesgoso)
+  // En este ejemplo simplificado usaré Function() para evaluar, con validación básica.
+
+  function evaluarFuncion(expr, x) {
+    try {
+      // Reemplazar potencias: x^2 -> Math.pow(x,2)
+      expr = expr.replace(/\^/g, "**");
+
+      // Crear función segura con Math y Math.* funciones
+      // Solo permitir letras, números, +-/*^(). y funciones básicas
+      // Vamos a usar new Function para mayor flexibilidad (sin eval)
+      let f = new Function("x", "with(Math) { return " + expr + "; }");
+      return f(x);
+    } catch (error) {
+      return NaN;
+    }
+  }
+
+  function calcularDerivada() {
+    const funcionInput = document.getElementById("funcion").value.trim();
+    const x0 = parseFloat(document.getElementById("punto").value);
+    const h = 0.0001; // pequeño para aproximar límite
+
+    const resultadoDiv = document.getElementById("resultado");
+    const explicacionDiv = document.getElementById("explicacion");
+    const graficaDiv = document.getElementById("grafica");
+
+    if (!funcionInput) {
+      alert("Por favor ingresa una función válida.");
+      return;
+    }
+    if (isNaN(x0)) {
+      alert("Por favor ingresa un valor numérico para x.");
+      return;
     }
 
-    // Función para calcular la derivada por el límite del cociente de diferencias
-    function calcularDerivada() {
-      const pasosDiv = document.getElementById('pasos');
-      pasosDiv.innerHTML = '';
-      const plotDiv = document.getElementById('plot');
-      plotDiv.innerHTML = '';
+    // Evaluar f(x0 + h), f(x0 - h)
+    const fxh = evaluarFuncion(funcionInput, x0 + h);
+    const fxnh = evaluarFuncion(funcionInput, x0 - h);
+    const fx = evaluarFuncion(funcionInput, x0);
 
-      const input = document.getElementById('funcion').value.trim();
-      if (!input) {
-        pasosDiv.innerHTML = '<p style="color:red;">Por favor ingresa una función.</p>';
-        return;
+    if ([fx, fxh, fxnh].some(v => isNaN(v) || !isFinite(v))) {
+      resultadoDiv.innerHTML = "<b>Error:</b> La función no se pudo evaluar en ese punto. Verifica la expresión.";
+      explicacionDiv.innerHTML = "";
+      graficaDiv.innerHTML = "";
+      return;
+    }
+
+    // Calcular derivada aproximada
+    const derivadaAprox = (fxh - fxnh) / (2 * h);
+
+    // Mostrar resultado y explicación paso a paso
+    resultadoDiv.innerHTML = `<h2>Resultado</h2>
+      <p>Derivada aproximada de <b>f(x)</b> en <b>x = ${x0}</b> usando el cociente de diferencias al cuadrado:</p>
+      <p style="font-size:1.3em; color:#007acc;">
+      f'(${x0}) ≈ [f(${x0} + h) - f(${x0} - h)] / (2h) = (${fxh.toFixed(6)} - ${fxnh.toFixed(6)}) / (2 × ${h}) = <b>${derivadaAprox.toFixed(6)}</b>
+      </p>`;
+
+    explicacionDiv.innerHTML = `<h3>Explicación del Método</h3>
+      <p>La derivada de una función en un punto se define como el límite cuando <b>h</b> tiende a cero de la tasa de cambio:</p>
+      <p style="font-style: italic;">
+      f'(x) = lim<sub>h→0</sub> [f(x + h) - f(x - h)] / (2h)
+      </p>
+      <p>En lugar de usar solo <code>(f(x+h) - f(x)) / h</code>, usamos esta fórmula simétrica para obtener mejor precisión numérica.</p>
+      <p>Usamos un valor pequeño de <b>h = ${h}</b> para aproximar este límite.</p>`;
+
+    // Graficar la función y su derivada aproximada
+    graficar(funcionInput, x0, derivadaAprox);
+  }
+
+  function graficar(funcion, x0, derivadaAprox) {
+    const graficaDiv = document.getElementById("grafica");
+
+    // Crear array de x para graficar en rango [x0-5, x0+5]
+    let xs = [];
+    let ys = [];
+    let ysDeriv = [];
+
+    const h = 0.0001;
+
+    for (let i = x0 - 5; i <= x0 + 5; i += 0.1) {
+      xs.push(i);
+      ys.push(evaluarFuncion(funcion, i));
+      // derivada aproximada por cociente de diferencias
+      let f_xph = evaluarFuncion(funcion, i + h);
+      let f_xmh = evaluarFuncion(funcion, i - h);
+      let d_approx = (f_xph - f_xmh) / (2 * h);
+      ysDeriv.push(d_approx);
+    }
+
+    // Punto para marcar derivada exacta aproximada en x0
+    const fx0 = evaluarFuncion(funcion, x0);
+
+    var data = [
+      {
+        x: xs,
+        y: ys,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'f(x)',
+        line: {color: 'blue'}
+      },
+      {
+        x: xs,
+        y: ysDeriv,
+        type: 'scatter',
+        mode: 'lines',
+        name: "f'(x) aproximada",
+        line: {color: 'red', dash: 'dash'}
+      },
+      {
+        x: [x0],
+        y: [fx0],
+        mode: 'markers',
+        name: `Punto x=${x0}`,
+        marker: {color: 'green', size: 10}
+      },
+      {
+        x: [x0],
+        y: [derivadaAprox],
+        mode: 'markers',
+        name: `Derivada aprox en x=${x0}`,
+        marker: {color: 'orange', size: 10, symbol: 'star'}
       }
+    ];
 
-      // Variables simbólicas x y h
-      const x = math.parse('x');
-      const h = math.parse('h');
-
-      try {
-        // Parsear la función f(x)
-        const fxNode = math.parse(input);
-
-        // Paso 1: Mostrar función original
-        mostrarLatex(`f(x) = ${fxNode.toTex()}`, 'pasos');
-
-        // Paso 2: Escribir el límite del cociente de diferencias
-        mostrarLatex(`f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}`, 'pasos');
-
-        // Paso 3: Calcular f(x+h)
-        const scope_xh = { x: math.parse('x + h') };
-        // Para sustituir x por (x+h) en el árbol fxNode, usamos 'transform' de math.js
-
-        // Usamos la función "transform" para reemplazar todas las ocurrencias de 'x' por 'x+h'
-        function sustituirXporXmasH(node) {
-          return node.transform(function (node, path, parent) {
-            if (node.isSymbolNode && node.name === 'x') {
-              return math.parse('x + h');
-            }
-            return node;
-          });
+    var layout = {
+      title: 'Gráfica de f(x) y su derivada aproximada',
+      xaxis: {title: 'x'},
+      yaxis: {title: 'y'},
+      legend: {x: 0, y: 1},
+      annotations: [
+        {
+          x: x0,
+          y: fx0,
+          xref: 'x',
+          yref: 'y',
+          text: `f(${x0}) = ${fx0.toFixed(3)}`,
+          showarrow: true,
+          arrowhead: 6,
+          ax: -40,
+          ay: -40
+        },
+        {
+          x: x0,
+          y: derivadaAprox,
+          xref: 'x',
+          yref: 'y',
+          text: `f'(${x0}) ≈ ${derivadaAprox.toFixed(3)}`,
+          showarrow: true,
+          arrowhead: 6,
+          ax: 40,
+          ay: 40
         }
+      ]
+    };
 
-        const fxhNode = sustituirXporXmasH(fxNode);
+    Plotly.newPlot(graficaDiv, data, layout, {responsive: true});
+  }
+</script>
 
-        mostrarLatex(`f(x+h) = ${fxhNode.toTex()}`, 'pasos');
-
-        // Paso 4: Formar el cociente (f(x+h) - f(x)) / h
-        const numerador = new math.OperatorNode('-', 'subtract', [fxhNode, fxNode]);
-        const cociente = new math.OperatorNode('/', 'divide', [numerador, h]);
-
-        mostrarLatex(`\\frac{f(x+h) - f(x)}{h} = \\frac{${fxhNode.toTex()} - ${fxNode.toTex()}}{h}`, 'pasos');
-
-        // Paso 5: Simplificar el numerador (f(x+h) - f(x))
-        const numeradorSimplificado = math.simplify(numerador);
-
-        mostrarLatex(`\\text{Numerador simplificado: } ${numeradorSimplificado.toTex()}`, 'pasos');
-
-        // Paso 6: Simplificar todo el cociente (numerador/h)
-        const cocienteSimplificado = math.simplify(new math.OperatorNode('/', 'divide', [numeradorSimplificado, h]));
-
-        mostrarLatex(`\\text{Cociente simplificado: } ${cocienteSimplificado.toTex()}`, 'pasos');
-
-        // Paso 7: Calcular el límite cuando h -> 0
-        // Como math.js no tiene calculadora de límites, haremos sustitución directa (suponiendo función diferenciable)
-        // Para hacer la sustitución, evaluamos la expresión con h=0 pero sin dividir por 0
-        // Así que la parte donde h está en denominador debe estar cancelada.
-
-        // Para hacerlo, expandimos y luego sustituimos h=0
-        const cocienteExpandido = math.simplify(cocienteSimplificado);
-        mostrarLatex(`\\text{Expansión para evaluar límite: } ${cocienteExpandido.toTex()}`, 'pasos');
-
-        // Evaluar limite: sustituir h=0 en la expresión cocienteExpandido
-        const limiteEvaluado = cocienteExpandido.evaluate({ h: 0 });
-
-        // Mostrar resultado final
-        mostrarLatex(`\\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h} = ${limiteEvaluado.toString()}`, 'pasos');
-
-        // Paso 8: Mostrar derivada final como función matemática
-        const derivadaFinalTex = math.parse(limiteEvaluado.toString()).toTex();
-        mostrarLatex(`\\boxed{f'(x) = ${derivadaFinalTex}}`, 'pasos');
-
-        // --- Graficar función y derivada ---
-
-        // Para graficar necesitamos funciones evaluables numéricamente
-        const f = fxNode.compile();
-
-        // La derivada final (limiteEvaluado) es una expresión de x, convertir a función evaluable
-        const derivadaNode = math.parse(limiteEvaluado.toString());
-        const df = derivadaNode.compile();
-
-        // Generar valores de x para graficar
-        const xs = math.range(-10, 10, 0.1).toArray();
-
-        const ys = xs.map(xVal => {
-          try {
-            return f.evaluate({ x: xVal });
-          } catch {
-            return NaN;
-          }
-        });
-
-        const dys = xs.map(xVal => {
-          try {
-            return df.evaluate({ x: xVal });
-          } catch {
-            return NaN;
-          }
-        });
-
-        const traceOriginal = {
-          x: xs,
-          y: ys,
-          mode: 'lines',
-          name: 'f(x)',
-          line: { color: '#4a6ef2' }
-        };
-        const traceDerivada = {
-          x: xs,
-          y: dys,
-          mode: 'lines',
-          name: "f'(x)",
-          line: { color: '#fa5252' }
-        };
-
-        const layout = {
-          title: 'Gráfica de f(x) y su derivada f\'(x)',
-          xaxis: { title: 'x' },
-          yaxis: { title: 'y' },
-          legend: { x: 0, y: 1.1 }
-        };
-
-        Plotly.newPlot('plot', [traceOriginal, traceDerivada], layout, { responsive: true });
-      } catch (err) {
-        pasosDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
-      }
-    }
-  </script>
 </body>
 </html>
