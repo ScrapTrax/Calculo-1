@@ -4,52 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculadora de Derivadas por Límites</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .explanation { background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-top: 20px; }
-        .formula { font-family: 'Courier New', Courier, monospace; font-size: 1.2em; white-space: pre; }
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; max-width: 800px; margin-left: auto; margin-right: auto; }
+        .container { background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+        .formula { font-size: 1.2em; text-align: center; margin: 20px 0; }
+        .explanation { background-color: #eef; padding: 15px; border-left: 4px solid #3498db; margin-top: 15px; }
+        h3 { color: #2c3e50; }
     </style>
 </head>
 <body>
 
-    <h1>Derivada de $f(x) = x^2$ por Límites</h1>
+    <h1>Calculadora de Derivadas</h1>
+    <p>Esta es una demostración didáctica de cómo se resuelve la derivada de la función $f(x) = x^2$ usando la definición formal del **límite del cociente de diferencias**.</p>
 
-    <p>El método largo para encontrar la derivada de una función se basa en la definición por límites:</p>
+    <div class="container">
+        <h2>Definición del método "largo"</h2>
+        <p>La derivada de una función $f(x)$ se define como:</p>
+        <div class="formula">
+            $$f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$
+        </div>
+        
+        <hr>
 
-    <p class="formula">$$ f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h} $$</p>
+        <h2>Resolución paso a paso para $f(x) = x^2$</h2>
 
-    <div class="explanation">
-        <h3>Paso a paso para $f(x) = x^2$</h3>
+        <div class="explanation">
+            <h3>Paso 1: Evaluar $f(x+h)$</h3>
+            <p>Sustituimos $x$ por $(x+h)$ en nuestra función:</p>
+            <p>$f(x+h) = (x+h)^2 = x^2 + 2xh + h^2$</p>
+        </div>
 
-        <p>1. **Encontrar $f(x+h)$**</p>
-        <p>Sustituimos $(x+h)$ en la función: $f(x+h) = (x+h)^2 = x^2 + 2xh + h^2$</p>
+        <div class="explanation">
+            <h3>Paso 2: Sustituir en la fórmula del límite</h3>
+            <p>Colocamos las expresiones en la fórmula del límite:</p>
+            $$f'(x) = \lim_{h \to 0} \frac{(x^2 + 2xh + h^2) - x^2}{h}$$
+        </div>
 
-        <p>2. **Sustituir en la fórmula del límite**</p>
-        <p>$$ f'(x) = \lim_{h \to 0} \frac{(x^2 + 2xh + h^2) - x^2}{h} $$</p>
+        <div class="explanation">
+            <h3>Paso 3: Simplificar la expresión</h3>
+            <p>Restamos $x^2$ y luego factorizamos $h$ en el numerador:</p>
+            $$f'(x) = \lim_{h \to 0} \frac{2xh + h^2}{h} = \lim_{h \to 0} \frac{h(2x + h)}{h}$$
+        </div>
 
-        <p>3. **Simplificar el numerador**</p>
-        <p>Restamos $x^2$ y nos queda: $2xh + h^2$</p>
-        <p>$$ f'(x) = \lim_{h \to 0} \frac{2xh + h^2}{h} $$</p>
-
-        <p>4. **Factorizar $h$**</p>
-        <p>Factorizamos $h$ en el numerador: $h(2x + h)$</p>
-        <p>$$ f'(x) = \lim_{h \to 0} \frac{h(2x + h)}{h} $$</p>
-
-        <p>5. **Eliminar $h$**</p>
-        <p>Cancelamos la $h$ del numerador y denominador: $2x + h$</p>
-        <p>$$ f'(x) = \lim_{h \to 0} (2x + h) $$</p>
-
-        <p>6. **Evaluar el límite**</p>
-        <p>Cuando $h$ se acerca a 0, la expresión se convierte en $2x + 0 = 2x$.</p>
-
-        <p><h3>Resultado Final:</h3></p>
-        <p>La derivada de $f(x) = x^2$ es **$f'(x) = 2x$**</p>
-    </div>
-
-    <div style="margin-top: 30px;">
-        <h2>Gráfica de la función y su derivada</h2>
-        <p>Aquí se podría mostrar una gráfica interactiva, donde la línea azul es la función $f(x) = x^2$ y la línea roja es la derivada $f'(x) = 2x$. En el punto $(1,1)$, la pendiente de la tangente de la curva azul es 2, que es el valor de la función derivada en $x=1$.</p>
-        <img src="https://i.imgur.com/eUvD9B4.png" alt="Gráfica de x^2 y 2x" style="width: 100%; max-width: 600px;">
+        <div class="explanation">
+            <h3>Paso 4: Cancelar $h$ y evaluar el límite</h3>
+            <p>Cancelamos la $h$ y evaluamos la expresión cuando $h$ se aproxima a cero:</p>
+            $$f'(x) = \lim_{h \to 0} (2x + h) = 2x + 0 = 2x$$
+        </div>
+        
+        <hr>
+        
+        <h2>Resultado final</h2>
+        <p>La derivada de $f(x) = x^2$ es **$f'(x) = 2x$**.</p>
+        <p>Este resultado coincide con el obtenido por el método "corto" (regla de la potencia), que nos dice que si $f(x)=x^n$, entonces $f'(x)=nx^{n-1}$.</p>
     </div>
 
 </body>
