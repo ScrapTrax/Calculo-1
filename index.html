@@ -3,24 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Calculadora de Derivadas (Límite del Cociente de Diferencias)</title>
+<title>Derivada por límite del cociente de diferencias centradas</title>
 <style>
   body {
     font-family: Arial, sans-serif;
     max-width: 900px;
     margin: 2rem auto;
+    background: #fafafa;
     padding: 1rem;
-    background: #f0f4f8;
     color: #222;
   }
   h1 {
     text-align: center;
-    color: #004e89;
+    color: #0d47a1;
   }
   label {
     font-weight: bold;
-    margin-top: 1rem;
     display: block;
+    margin-top: 1rem;
   }
   input[type="text"], input[type="number"] {
     width: 100%;
@@ -28,212 +28,221 @@
     padding: 0.5rem;
     margin-top: 0.3rem;
     box-sizing: border-box;
+    border-radius: 4px;
+    border: 1px solid #ccc;
   }
   button {
-    margin-top: 1rem;
+    margin-top: 1.5rem;
     padding: 0.7rem 1.5rem;
     font-size: 1.1rem;
-    background-color: #0077cc;
+    background-color: #1976d2;
     color: white;
     border: none;
+    border-radius: 5px;
     cursor: pointer;
-    border-radius: 4px;
   }
   button:hover {
-    background-color: #005fa3;
+    background-color: #004ba0;
   }
-  #output {
+  #resultado {
     margin-top: 2rem;
     background: white;
     padding: 1rem;
     border-radius: 8px;
-    box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
   }
-  pre {
-    background: #eee;
-    padding: 0.8rem;
-    border-radius: 4px;
-    overflow-x: auto;
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 1rem;
   }
-  #plot {
+  th, td {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: center;
+  }
+  th {
+    background-color: #1976d2;
+    color: white;
+  }
+  #grafica {
     margin-top: 2rem;
   }
-  .explanation {
+  .explicacion {
     margin-top: 1rem;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 </style>
 </head>
 <body>
 
-<h1>Calculadora de Derivadas por Límite del Cociente de Diferencias</h1>
+<h1>Derivada usando límite del cociente de diferencias centradas</h1>
 
-<form id="derivForm">
-  <label for="funcInput">Función \( f(x) \) (usa sintaxis JavaScript Math, ejemplo: x*x + 3*x, Math.sin(x), Math.log(x)):</label>
-  <input type="text" id="funcInput" placeholder="Ejemplo: x*x + 3*x" required />
-
-  <label for="xValue">Punto donde calcular la derivada (valor de \( x \)):</label>
-  <input type="number" id="xValue" value="1" step="any" required />
-
+<form id="formDerivada">
+  <label for="funcion">Función \( f(x) \) (ejemplo: x*x + 3*x, Math.sin(x), Math.log(x)):</label>
+  <input type="text" id="funcion" placeholder="Ej: x*x + 3*x" required />
+  
+  <label for="punto">Punto \( x \) donde calcular la derivada:</label>
+  <input type="number" id="punto" value="1" step="any" required />
+  
   <button type="submit">Calcular Derivada</button>
 </form>
 
-<div id="output"></div>
-<div id="plot"></div>
+<div id="resultado"></div>
+<div id="grafica"></div>
 
-<!-- Plotly CDN -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
-  // Función para evaluar la función ingresada de forma segura
-  function evalFunction(funcStr, x) {
-    // Creamos una función con "x" en el contexto
+  // Evalúa la función ingresada en x
+  function evaluarFuncion(func, x) {
     try {
-      // Evitar usar eval directamente: new Function is safer here
-      const f = new Function("x", "return " + funcStr + ";");
-      const val = f(x);
-      if (typeof val !== "number" || isNaN(val) || !isFinite(val)) {
-        throw new Error("El resultado no es un número válido.");
+      // Crear función segura
+      let f = new Function("x", "return " + func + ";");
+      let val = f(x);
+      if (typeof val !== "number" || !isFinite(val)) {
+        throw new Error("Resultado no es un número válido");
       }
       return val;
     } catch (e) {
-      throw new Error("Error al evaluar la función: " + e.message);
+      throw new Error("Error al evaluar función: " + e.message);
     }
   }
 
-  document.getElementById("derivForm").addEventListener("submit", (e) => {
+  document.getElementById("formDerivada").addEventListener("submit", function(e) {
     e.preventDefault();
-    const funcStr = document.getElementById("funcInput").value.trim();
-    const x = parseFloat(document.getElementById("xValue").value);
-    const outputDiv = document.getElementById("output");
-    const plotDiv = document.getElementById("plot");
-    outputDiv.innerHTML = "";
-    plotDiv.innerHTML = "";
 
-    // Validar inputs
-    if (!funcStr) {
-      outputDiv.textContent = "Por favor ingresa una función válida.";
+    const func = document.getElementById("funcion").value.trim();
+    const x = parseFloat(document.getElementById("punto").value);
+    const resultadoDiv = document.getElementById("resultado");
+    const graficaDiv = document.getElementById("grafica");
+    resultadoDiv.innerHTML = "";
+    graficaDiv.innerHTML = "";
+
+    if (!func) {
+      resultadoDiv.textContent = "Ingrese una función válida.";
       return;
     }
     if (isNaN(x)) {
-      outputDiv.textContent = "Por favor ingresa un valor numérico para x.";
+      resultadoDiv.textContent = "Ingrese un número válido para x.";
       return;
     }
 
-    // Pasos del cálculo
-    // Usaremos aproximaciones con h cada vez más pequeño y el cociente de diferencias centradas:
-    // f'(x) ~ (f(x+h) - f(x-h)) / (2h)
-    // para h = 0.1, 0.01, 0.001, 0.0001
-
-    let steps = [];
-    const hValues = [0.1, 0.01, 0.001, 0.0001, 0.00001];
-    let derivApprox = null;
+    // Valores de h para aproximar el límite (cada vez más pequeño)
+    const hs = [0.1, 0.01, 0.001, 0.0001, 0.00001];
+    let pasos = [];
+    let derivadaAprox = null;
 
     try {
-      for (let h of hValues) {
-        const fxh = evalFunction(funcStr, x + h);
-        const fx_h = evalFunction(funcStr, x - h);
-        const diffQuot = (fxh - fx_h) / (2 * h);
-        steps.push({ h, fxh, fx_h, diffQuot });
-        derivApprox = diffQuot; // Última aproximación (más pequeña h)
+      for (let h of hs) {
+        let f_xph = evaluarFuncion(func, x + h);
+        let f_xmh = evaluarFuncion(func, x - h);
+        let deriv = (f_xph - f_xmh) / (2 * h);
+        pasos.push({
+          h: h,
+          f_xph: f_xph,
+          f_xmh: f_xmh,
+          deriv: deriv
+        });
+        derivadaAprox = deriv; // Última y mejor aproximación
       }
     } catch (error) {
-      outputDiv.textContent = error.message;
+      resultadoDiv.textContent = error.message;
       return;
     }
 
-    // Mostrar cálculo paso a paso
-    let html = `<h2>Cálculo paso a paso usando el límite del cociente de diferencias centradas:</h2>`;
-    html += `<p>Queremos calcular:</p>`;
-    html += `<p style="font-size:1.2em; font-weight:bold;">f'(x) = lim (h→0) [f(x+h) - f(x-h)] / (2h)</p>`;
-    html += `<p>En el punto x = <b>${x}</b>:</p>`;
+    // Mostrar tabla paso a paso
+    let html = `
+      <h2>Cálculo paso a paso</h2>
+      <p>Queremos calcular la derivada de \( f(x) \) en \( x = ${x} \) usando la definición:</p>
+      <p style="font-weight:bold;">\( f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x-h)}{2h} \)</p>
+      <table>
+        <thead>
+          <tr>
+            <th>h</th>
+            <th>f(x+h)</th>
+            <th>f(x−h)</th>
+            <th>Derivada aproximada</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
 
-    html += `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; margin: 1rem 0; width:100%; max-width:700px;">
-      <thead>
-        <tr style="background:#0077cc; color:white;">
-          <th>h</th>
-          <th>f(x+h)</th>
-          <th>f(x-h)</th>
-          <th>Derivada Aproximada = [f(x+h) - f(x-h)] / 2h</th>
+    for (let paso of pasos) {
+      html += `
+        <tr>
+          <td>${paso.h}</td>
+          <td>${paso.f_xph.toFixed(8)}</td>
+          <td>${paso.f_xmh.toFixed(8)}</td>
+          <td>${paso.deriv.toFixed(8)}</td>
         </tr>
-      </thead><tbody>`;
-
-    for (let step of steps) {
-      html += `<tr>
-        <td>${step.h}</td>
-        <td>${step.fxh.toFixed(6)}</td>
-        <td>${step.fx_h.toFixed(6)}</td>
-        <td>${step.diffQuot.toFixed(6)}</td>
-      </tr>`;
+      `;
     }
     html += `</tbody></table>`;
+    html += `<p><strong>Valor aproximado de la derivada en x = ${x}: ${derivadaAprox.toFixed(8)}</strong></p>`;
 
-    html += `<p><b>Valor aproximado de la derivada en x = ${x}:</b> ${derivApprox.toFixed(6)}</p>`;
+    html += `
+      <div class="explicacion">
+        <h3>Explicación:</h3>
+        <p>La derivada representa la pendiente de la recta tangente a la curva en un punto.</p>
+        <p>El método usado aproxima la derivada usando valores cercanos a \( x \) con incrementos y decrementos de tamaño \( h \), haciendo \( h \) cada vez más pequeño.</p>
+        <p>Así se calcula el límite que define la derivada de forma numérica.</p>
+      </div>
+    `;
 
-    // Explicación del método
-    html += `<div class="explanation">
-      <h3>Explicación:</h3>
-      <p>La derivada de una función en un punto representa la pendiente de la recta tangente en ese punto.</p>
-      <p>Usamos el <b>cociente de diferencias centradas</b> para aproximar el límite que define la derivada. Este método es más preciso que usar diferencias hacia adelante o hacia atrás.</p>
-      <p>Al disminuir el valor de <i>h</i>, la aproximación mejora, y vemos la convergencia hacia el valor real de la derivada.</p>
-    </div>`;
+    resultadoDiv.innerHTML = html;
 
-    outputDiv.innerHTML = html;
+    // Graficar función y recta tangente
+    // Datos para la función en intervalo [x-2, x+2]
+    const xs = [];
+    const ys = [];
+    const pasoGraf = 0.01;
+    const rango = 2;
 
-    // Ahora graficamos la función y la tangente en el punto x
-
-    // Crear datos para graficar f(x) en un intervalo cercano a x
-    const xValues = [];
-    const yValues = [];
-    const stepPlot = 0.01;
-    const range = 2; // Graficar x ± range
-
-    for (let xi = x - range; xi <= x + range; xi += stepPlot) {
+    for (let xi = x - rango; xi <= x + rango; xi += pasoGraf) {
       try {
-        xValues.push(xi);
-        yValues.push(evalFunction(funcStr, xi));
+        xs.push(xi);
+        ys.push(evaluarFuncion(func, xi));
       } catch {
-        yValues.push(null);
+        ys.push(null);
       }
     }
 
-    // Recta tangente: y = f(x0) + f'(x0)(x - x0)
-    const fx0 = evalFunction(funcStr, x);
-    const tangentY = xValues.map((xi) => fx0 + derivApprox * (xi - x));
+    const f_x = evaluarFuncion(func, x);
+    const tangenteY = xs.map(xi => f_x + derivadaAprox * (xi - x));
 
-    // Plotly data
-    const data = [
+    const datos = [
       {
-        x: xValues,
-        y: yValues,
-        mode: "lines",
-        name: "f(x)",
-        line: { color: "#0077cc", width: 3 },
+        x: xs,
+        y: ys,
+        mode: 'lines',
+        name: 'f(x)',
+        line: {color: '#0d47a1', width: 3}
       },
       {
-        x: xValues,
-        y: tangentY,
-        mode: "lines",
-        name: `Recta tangente en x = ${x}`,
-        line: { color: "#ff6600", width: 2, dash: "dash" },
+        x: xs,
+        y: tangenteY,
+        mode: 'lines',
+        name: 'Recta tangente',
+        line: {color: '#e65100', width: 2, dash: 'dash'}
       },
       {
         x: [x],
-        y: [fx0],
-        mode: "markers",
-        name: "Punto de tangencia",
-        marker: { color: "red", size: 8 },
-      },
+        y: [f_x],
+        mode: 'markers',
+        name: 'Punto tangente',
+        marker: {color: 'red', size: 10}
+      }
     ];
 
     const layout = {
-      title: "Gráfica de la función y la recta tangente en el punto",
-      xaxis: { title: "x", zeroline: true },
-      yaxis: { title: "y" },
-      showlegend: true,
-      margin: { t: 50, r: 30, b: 50, l: 60 },
+      title: `Gráfica de f(x) y su recta tangente en x = ${x}`,
+      xaxis: {title: 'x'},
+      yaxis: {title: 'y'},
+      margin: {t: 50, l: 60, r: 30, b: 50},
+      legend: {orientation: "h", y: -0.2}
     };
 
-    Plotly.newPlot("plot", data, layout, { responsive: true });
+    Plotly.newPlot('grafica', datos, layout, {responsive:true});
   });
 </script>
 
