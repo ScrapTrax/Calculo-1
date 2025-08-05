@@ -2,183 +2,222 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Derivadas Paso a Paso</title>
-  
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  
-  <!-- MathJax para notación matemática -->
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script id="MathJax-script" async
-          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Derivadas Paso a Paso</title>
 
-  <!-- Plotly para gráficas -->
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
-  <!-- Math.js para operaciones matemáticas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
-
+  <!-- Estilos CSS -->
   <style>
     body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: #f4f7fb;
+      padding: 0;
+      background: #f2f5f9;
       color: #333;
-      padding: 2rem;
     }
 
-    h1 {
+    header {
+      background-color: #5c7cfa;
+      color: white;
+      padding: 1rem;
       text-align: center;
-      color: #222;
     }
 
-    .container {
-      max-width: 800px;
-      margin: auto;
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1rem;
       background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
 
     input, button {
-      width: 100%;
-      padding: 0.75rem;
       font-size: 1rem;
-      margin-top: 1rem;
-      border-radius: 8px;
+      padding: 0.5rem;
+      border-radius: 5px;
       border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 1rem;
     }
 
     button {
-      background-color: #4f46e5;
+      background-color: #5c7cfa;
       color: white;
-      font-weight: bold;
+      border: none;
       cursor: pointer;
+      transition: background 0.3s;
     }
 
     button:hover {
-      background-color: #4338ca;
+      background-color: #3b5bdb;
     }
 
-    #steps, #graph {
+    .output {
       margin-top: 2rem;
     }
 
-    .math-output {
-      background: #f9f9f9;
-      padding: 1rem;
-      border-radius: 8px;
-      font-size: 1.1rem;
+    .math-display {
+      font-size: 1.2rem;
+      margin: 1rem 0;
+    }
+
+    #plot {
+      margin-top: 2rem;
     }
 
     @media (max-width: 600px) {
-      .container {
+      body, main {
         padding: 1rem;
       }
     }
   </style>
+
+  <!-- Librerías -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body);"></script>
 </head>
+
 <body>
-  <div class="container">
+  <header>
     <h1>Calculadora de Derivadas Paso a Paso</h1>
-    <p>Ingresa una función matemática (ej: <code>x^2 + 3x</code>, <code>sin(x)</code>, <code>ln(x)</code>):</p>
-    <input type="text" id="inputFunction" placeholder="Escribe tu función aquí..." />
-    <button onclick="resolverDerivada()">Resolver Derivada</button>
+    <p>Escribe una función matemática para derivarla con explicación completa.</p>
+  </header>
 
-    <div id="steps">
+  <main>
+    <label for="funcion">Función f(x):</label>
+    <input type="text" id="funcion" placeholder="Ejemplo: x^3 + 2*x - sin(x)" />
+    <button onclick="calcularDerivada()">Calcular Derivada</button>
+
+    <div class="output">
       <h2>Pasos de la Derivación:</h2>
-      <div class="math-output" id="derivadaPasoAPaso">Esperando entrada...</div>
-    </div>
+      <div id="pasos" class="math-display"></div>
 
-    <div id="graph">
-      <h2>Gráfica de la función y su derivada:</h2>
+      <h2>Gráfica de f(x) y f'(x):</h2>
       <div id="plot"></div>
     </div>
-  </div>
+  </main>
 
+  <!-- JavaScript -->
   <script>
-    function resolverDerivada() {
-      const input = document.getElementById("inputFunction").value;
-      const stepsContainer = document.getElementById("derivadaPasoAPaso");
-      const scope = { x: 1 }; // para evaluar funciones
+    function mostrarLatex(latex, elementoId) {
+      const contenedor = document.getElementById(elementoId);
+      contenedor.innerHTML += `<p>\\[${latex}\\]</p>`;
+      renderMathInElement(contenedor);
+    }
+
+    function calcularDerivada() {
+      const input = document.getElementById('funcion').value;
+      const pasos = document.getElementById('pasos');
+      pasos.innerHTML = ''; // Limpiar resultados previos
 
       try {
-        // Analizar la función
+        const x = math.parse('x');
         const node = math.parse(input);
-        const derivative = math.derivative(node, 'x');
+        const f = node.compile();
+        const df = math.derivative(node, 'x');
 
-        // Explicación paso a paso básica (más simbólica que algebraica)
-        let explanation = `
-          \\[
-          \\text{Función original: } f(x) = ${node.toTex()}
-          \\]
-          \\[
-          \\text{Aplicamos reglas de derivación:}
-          \\]
-          \\[
-          f'(x) = ${derivative.toTex()}
-          \\]
-          \\text{(Este resultado puede simplificarse o expandirse más según la función).}
-        `;
+        // Paso 1: Mostrar función original
+        mostrarLatex('f(x) = ' + node.toTex(), 'pasos');
 
-        stepsContainer.innerHTML = explanation;
-        MathJax.typeset();
+        // Paso 2: Regla de derivación aplicada
+        pasos.innerHTML += "<strong>Aplicando reglas de derivación:</strong>";
+        mostrarLatex("\\frac{d}{dx}[" + node.toTex() + "]", 'pasos');
 
-        // Para graficar
-        graficarFuncion(node, derivative);
+        // Paso 3: Desarrollo paso a paso
+        const pasosDetallados = generarPasos(node);
+        pasosDetallados.forEach(p => mostrarLatex(p, 'pasos'));
+
+        // Paso 4: Resultado final
+        pasos.innerHTML += "<strong>Resultado final:</strong>";
+        mostrarLatex("f'(x) = " + df.toTex(), 'pasos');
+
+        // Graficar función y derivada
+        graficarFunciones(f, df);
+
       } catch (error) {
-        stepsContainer.innerHTML = "❌ Error al interpretar la función. Revisa la sintaxis.";
+        pasos.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
       }
     }
 
-    function graficarFuncion(originalNode, derivativeNode) {
-      const xValues = math.range(-10, 10, 0.1).toArray();
-      const f = originalNode.compile();
-      const fPrime = derivativeNode.compile();
+    function generarPasos(node) {
+      const pasos = [];
 
-      const yOriginal = xValues.map(x => {
-        try {
-          return f.evaluate({ x });
-        } catch {
-          return null;
+      function recorrer(nodo) {
+        if (nodo.type === 'OperatorNode') {
+          let izquierda = nodo.args[0];
+          let derecha = nodo.args[1];
+          let op = nodo.op;
+
+          if (op === '+') {
+            pasos.push("\\frac{d}{dx}[" + nodo.toTex() + "] = \\frac{d}{dx}[" + izquierda.toTex() + "] + \\frac{d}{dx}[" + derecha.toTex() + "]");
+            recorrer(izquierda);
+            recorrer(derecha);
+          } else if (op === '-') {
+            pasos.push("\\frac{d}{dx}[" + nodo.toTex() + "] = \\frac{d}{dx}[" + izquierda.toTex() + "] - \\frac{d}{dx}[" + derecha.toTex() + "]");
+            recorrer(izquierda);
+            recorrer(derecha);
+          } else if (op === '*') {
+            pasos.push("\\frac{d}{dx}[" + nodo.toTex() + "] = \\frac{d}{dx}[" + izquierda.toTex() + " \\cdot " + derecha.toTex() + "]");
+            pasos.push("= " + izquierda.toTex() + " \\cdot \\frac{d}{dx}[" + derecha.toTex() + "] + " + derecha.toTex() + " \\cdot \\frac{d}{dx}[" + izquierda.toTex() + "]");
+            recorrer(izquierda);
+            recorrer(derecha);
+          } else if (op === '/') {
+            pasos.push("\\frac{d}{dx}\\left[\\frac{" + izquierda.toTex() + "}{" + derecha.toTex() + "}\\right] = \\frac{" + derecha.toTex() + " \\cdot \\frac{d}{dx}[" + izquierda.toTex() + "] - " + izquierda.toTex() + " \\cdot \\frac{d}{dx}[" + derecha.toTex() + "]}{" + derecha.toTex() + "^2}");
+            recorrer(izquierda);
+            recorrer(derecha);
+          } else if (op === '^') {
+            pasos.push("\\frac{d}{dx}\\left[" + izquierda.toTex() + "^" + derecha.toTex() + "\\right] = " + derecha.toTex() + " \\cdot " + izquierda.toTex() + "^{" + (math.simplify(derecha.toString() + "-1")) + "} \\cdot \\frac{d}{dx}[" + izquierda.toTex() + "]");
+            recorrer(izquierda);
+          }
+        } else if (nodo.type === 'FunctionNode') {
+          let arg = nodo.args[0];
+          pasos.push("\\frac{d}{dx}[" + nodo.toTex() + "] = " + "f'(" + arg.toTex() + ") \\cdot \\frac{d}{dx}[" + arg.toTex() + "]");
+          recorrer(arg);
         }
+      }
+
+      recorrer(node);
+      return pasos;
+    }
+
+    function graficarFunciones(f, df) {
+      const x_vals = math.range(-10, 10, 0.1).toArray();
+      const y_vals = x_vals.map(x => {
+        try { return f.evaluate({ x }); } catch { return null; }
       });
-
-      const yDerivada = xValues.map(x => {
-        try {
-          return fPrime.evaluate({ x });
-        } catch {
-          return null;
-        }
+      const dy_vals = x_vals.map(x => {
+        try { return df.evaluate({ x }); } catch { return null; }
       });
 
       const trace1 = {
-        x: xValues,
-        y: yOriginal,
+        x: x_vals,
+        y: y_vals,
         mode: 'lines',
         name: 'f(x)',
-        line: { color: '#1f77b4' }
+        line: { color: '#5c7cfa' }
       };
 
       const trace2 = {
-        x: xValues,
-        y: yDerivada,
+        x: x_vals,
+        y: dy_vals,
         mode: 'lines',
         name: "f'(x)",
-        line: { color: '#d62728' }
+        line: { color: '#fa5252' }
       };
 
       const layout = {
-        title: 'Función y su Derivada',
+        title: 'Gráfica de f(x) y su derivada f\'(x)',
         xaxis: { title: 'x' },
         yaxis: { title: 'y' },
-        legend: { x: 0, y: 1 }
+        legend: { x: 0, y: 1.1 }
       };
 
-      Plotly.newPlot('plot', [trace1, trace2], layout);
+      Plotly.newPlot('plot', [trace1, trace2], layout, { responsive: true });
     }
   </script>
 </body>
