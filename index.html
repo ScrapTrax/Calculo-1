@@ -3,63 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Derivadas por Límites</title>
+    <title>Calculadora de Derivadas</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; max-width: 800px; margin-left: auto; margin-right: auto; }
-        .container { background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
-        .formula { font-size: 1.2em; text-align: center; margin: 20px 0; }
-        .explanation { background-color: #eef; padding: 15px; border-left: 4px solid #3498db; margin-top: 15px; }
-        h3 { color: #2c3e50; }
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; max-width: 800px; margin-left: auto; margin-right: auto; background-color: #f4f4f4; }
+        .container { background-color: #ffffff; padding: 25px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .input-group input { width: calc(100% - 22px); padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .btn { display: inline-block; padding: 10px 20px; background-color: #007BFF; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .btn:hover { background-color: #0056b3; }
+        #explanation { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #e9f5ff; border-left: 4px solid #2196F3; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #d4edda; border-left: 4px solid #28a745; font-size: 1.1em; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>Calculadora de Derivadas</h1>
-    <p>Esta es una demostración didáctica de cómo se resuelve la derivada de la función $f(x) = x^2$ usando la definición formal del **límite del cociente de diferencias**.</p>
-
     <div class="container">
-        <h2>Definición del método "largo"</h2>
-        <p>La derivada de una función $f(x)$ se define como:</p>
-        <div class="formula">
-            $$f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$
+        <h1>Calculadora de Derivadas (Demostración)</h1>
+        <p>Ingresa una función simple, como `x^2 + 3x`, y te mostraré el resultado de su derivada y el proceso para una función de ejemplo.</p>
+
+        <div class="input-group">
+            <label for="funcionInput">Función $f(x) = $</label>
+            <input type="text" id="funcionInput" placeholder="Ej: x^2 + 3x">
+            <button class="btn" onclick="resolverDerivada()">Resolver</button>
+        </div>
+
+        <hr>
+
+        <div id="explanation">
+            <h2>1. Proceso de la Derivada por Límites (Método Largo)</h2>
+            <p>A continuación se muestra el proceso detallado para una función de ejemplo, $f(x) = x^2$.</p>
+            <p>La fórmula del método largo es:</p>
+            <p class="math-formula">$$f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$</p>
+            
+            <h3>Paso a paso para $f(x) = x^2$:</h3>
+            <ul>
+                <li><strong>1. Evaluar $f(x+h)$</strong>: $f(x+h) = (x+h)^2 = x^2 + 2xh + h^2$</li>
+                <li><strong>2. Sustituir en la fórmula</strong>: $$ \lim_{h \to 0} \frac{(x^2 + 2xh + h^2) - x^2}{h} $$</li>
+                <li><strong>3. Simplificar</strong>: $$ \lim_{h \to 0} \frac{2xh + h^2}{h} = \lim_{h \to 0} \frac{h(2x + h)}{h} $$</li>
+                <li><strong>4. Evaluar el límite</strong>: $$ \lim_{h \to 0} (2x + h) = 2x $$</li>
+            </ul>
         </div>
         
         <hr>
 
-        <h2>Resolución paso a paso para $f(x) = x^2$</h2>
-
-        <div class="explanation">
-            <h3>Paso 1: Evaluar $f(x+h)$</h3>
-            <p>Sustituimos $x$ por $(x+h)$ en nuestra función:</p>
-            <p>$f(x+h) = (x+h)^2 = x^2 + 2xh + h^2$</p>
+        <div id="result">
+            <h2>2. Resultado de tu Derivada</h2>
+            <p id="resultadoTexto">Ingresa una función y presiona "Resolver" para ver el resultado.</p>
         </div>
 
-        <div class="explanation">
-            <h3>Paso 2: Sustituir en la fórmula del límite</h3>
-            <p>Colocamos las expresiones en la fórmula del límite:</p>
-            $$f'(x) = \lim_{h \to 0} \frac{(x^2 + 2xh + h^2) - x^2}{h}$$
-        </div>
-
-        <div class="explanation">
-            <h3>Paso 3: Simplificar la expresión</h3>
-            <p>Restamos $x^2$ y luego factorizamos $h$ en el numerador:</p>
-            $$f'(x) = \lim_{h \to 0} \frac{2xh + h^2}{h} = \lim_{h \to 0} \frac{h(2x + h)}{h}$$
-        </div>
-
-        <div class="explanation">
-            <h3>Paso 4: Cancelar $h$ y evaluar el límite</h3>
-            <p>Cancelamos la $h$ y evaluamos la expresión cuando $h$ se aproxima a cero:</p>
-            $$f'(x) = \lim_{h \to 0} (2x + h) = 2x + 0 = 2x$$
-        </div>
-        
-        <hr>
-        
-        <h2>Resultado final</h2>
-        <p>La derivada de $f(x) = x^2$ es **$f'(x) = 2x$**.</p>
-        <p>Este resultado coincide con el obtenido por el método "corto" (regla de la potencia), que nos dice que si $f(x)=x^n$, entonces $f'(x)=nx^{n-1}$.</p>
     </div>
 
+    <script>
+        function resolverDerivada() {
+            const funcionStr = document.getElementById('funcionInput').value.trim();
+            const resultadoDiv = document.getElementById('resultadoTexto');
+
+            if (funcionStr === '') {
+                resultadoDiv.innerHTML = 'Por favor, ingresa una función.';
+                return;
+            }
+
+            // Esta es la parte del código que simula la resolución "corta"
+            // Nota: Esto no resuelve por el método largo, solo aplica la regla de la potencia.
+            try {
+                let derivada = '';
+                const terminos = funcionStr.split('+').map(t => t.trim()).filter(t => t);
+                let derivadaTerminos = [];
+
+                terminos.forEach(termino => {
+                    termino = termino.replace(/\s/g, ''); // Eliminar espacios
+
+                    // Manejar constante
+                    if (!termino.includes('x')) {
+                        // La derivada de una constante es 0
+                        derivadaTerminos.push('0');
+                        return;
+                    }
+
+                    // Manejar x
+                    if (termino === 'x') {
+                        derivadaTerminos.push('1');
+                        return;
+                    }
+
+                    // Manejar x^n
+                    if (termino.includes('^')) {
+                        const partes = termino.split('^');
+                        let base = partes[0];
+                        const exponente = parseInt(partes[1]);
+                        let coeficiente = 1;
+
+                        if (base.includes('x')) {
+                            const match = base.match(/(\d*)x/);
+                            if (match && match[1]) {
+                                coeficiente = parseInt(match[1]);
+                            }
+                        }
+
+                        const nuevoCoeficiente = coeficiente * exponente;
+                        const nuevoExponente = exponente - 1;
+
+                        if (nuevoExponente === 0) {
+                            derivadaTerminos.push(nuevoCoeficiente.toString());
+                        } else if (nuevoExponente === 1) {
+                            derivadaTerminos.push(`${nuevoCoeficiente}x`);
+                        } else {
+                            derivadaTerminos.push(`${nuevoCoeficiente}x^${nuevoExponente}`);
+                        }
+                        return;
+                    }
+
+                    // Manejar ax (ej: 3x)
+                    if (termino.includes('x')) {
+                        const match = termino.match(/(\d*)x/);
+                        if (match && match[1]) {
+                            derivadaTerminos.push(match[1]);
+                        } else {
+                           derivadaTerminos.push('1');
+                        }
+                    }
+
+                });
+
+                derivada = derivadaTerminos.filter(t => t !== '0').join(' + ');
+                if (derivada === '') {
+                    derivada = '0';
+                }
+
+                // Mostrar el resultado con MathJax
+                resultadoDiv.innerHTML = `La derivada de $f(x) = ${funcionStr}$ es: <br> $$f'(x) = ${derivada}$$`;
+
+            } catch (error) {
+                resultadoDiv.innerHTML = 'Error al procesar la función. Por favor, asegúrate de usar un formato simple como `ax^n + bx`.';
+            }
+        }
+    </script>
 </body>
 </html>
