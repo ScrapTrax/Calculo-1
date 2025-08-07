@@ -2,12 +2,13 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Derivada Paso a Paso</title>
+  <title>Derivada por Límite (Paso a Paso)</title>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
   <style>
-    body { font-family: Arial; background: #f4f4f4; padding: 20px; max-width: 900px; margin: auto; }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; max-width: 900px; margin: auto; }
     .container { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    h1 { text-align: center; color: #333; }
+    h1 { text-align: center; }
     label, input, button { display: block; margin: 10px 0; font-size: 16px; }
     input { width: 100%; padding: 10px; }
     button { background: #007BFF; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; }
@@ -16,138 +17,134 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Derivada por Método del Límite</h1>
-    <label for="funcion">Ingresa una función polinómica (Ej: 3x^2 + 2x + 1):</label>
-    <input id="funcion" type="text" placeholder="Ejemplo: x^2 + 3x + 2">
-    <button onclick="resolverDerivada()">Resolver</button>
+<div class="container">
+  <h1>Derivada por Método del Límite</h1>
+  <label for="funcion">Función polinómica (ej: x^2 + 3x + 1):</label>
+  <input id="funcion" type="text" placeholder="Ej: x^2 + 3x + 1">
+  <button onclick="resolverDerivada()">Resolver</button>
 
-    <div id="steps"></div>
-    <div id="result"></div>
-  </div>
+  <div id="steps"></div>
+  <div id="result"></div>
+</div>
 
-  <script>
-    function parsePolinomio(fx) {
-      fx = fx.replace(/\s+/g, '').replace(/-/g, '+-');
-      const terminos = fx.split('+').filter(Boolean);
-      return terminos.map(t => {
-        if (t.includes('x')) {
-          const [coef, exp] = t.split('x^').length > 1
-            ? [t.split('x^')[0], t.split('x^')[1]]
-            : [t.replace('x', ''), 1];
-          return {
-            coef: coef === '' || coef === '+' ? 1 : (coef === '-' ? -1 : parseFloat(coef)),
-            exp: parseInt(exp || 1)
-          };
-        } else {
-          return { coef: parseFloat(t), exp: 0 };
-        }
+<script>
+  function parsePolinomio(input) {
+    input = input.replace(/\s+/g, '').replace(/-/g, '+-');
+    const terminos = input.split('+').filter(Boolean);
+    return terminos.map(t => {
+      if (!t.includes('x')) return { coef: parseFloat(t), exp: 0 };
+      let coef = 1, exp = 1;
+      if (t.includes('x^')) {
+        [coef, exp] = t.split('x^');
+        coef = coef === '' ? 1 : (coef === '-' ? -1 : parseFloat(coef));
+        exp = parseInt(exp);
+      } else if (t.includes('x')) {
+        coef = t.replace('x', '');
+        coef = coef === '' ? 1 : (coef === '-' ? -1 : parseFloat(coef));
+        exp = 1;
+      }
+      return { coef, exp };
+    });
+  }
+
+  function expandBinomio(coef, exp) {
+    const terms = [];
+    for (let k = 0; k <= exp; k++) {
+      const bin = factorial(exp) / (factorial(k) * factorial(exp - k));
+      const c = coef * bin;
+      const x = exp - k;
+      const h = k;
+      let term = (c === 1 ? '' : (c === -1 ? '-' : c));
+      if (x > 0) term += `x${x > 1 ? '^' + x : ''}`;
+      if (h > 0) term += `h${h > 1 ? '^' + h : ''}`;
+      if (x === 0 && h === 0) term += '1';
+      terms.push(term);
+    }
+    return terms;
+  }
+
+  function factorial(n) {
+    return n <= 1 ? 1 : n * factorial(n - 1);
+  }
+
+  function simplificar(terms) {
+    const mapa = {};
+    for (let t of terms) {
+      const match = t.match(/^(-?\d*\.?\d*)(x(\^\d+)?)?(h(\^\d+)?)?$/);
+      if (!match) continue;
+      let coef = match[1] === '' || match[1] === '+' ? 1 : (match[1] === '-' ? -1 : parseFloat(match[1]));
+      const x = match[3] || '';
+      const h = match[5] || '';
+      const clave = `x${x || ''}h${h || ''}`;
+      mapa[clave] = (mapa[clave] || 0) + coef;
+    }
+    const resultado = [];
+    for (let [clave, coef] of Object.entries(mapa)) {
+      if (coef === 0) continue;
+      let parte = '';
+      if (coef === 1) parte = '';
+      else if (coef === -1) parte = '-';
+      else parte = coef.toString();
+      resultado.push(parte + clave.replace(/x1/g, 'x').replace(/h1/g, 'h'));
+    }
+    return resultado;
+  }
+
+  function resolverDerivada() {
+    const input = document.getElementById("funcion").value;
+    const pasosDiv = document.getElementById("steps");
+    const resultadoDiv = document.getElementById("result");
+    try {
+      const pol = parsePolinomio(input);
+      let fxhTerms = [];
+      let fxTerms = [];
+
+      let pasos = `
+        <h2>1. Usamos la definición de derivada:</h2>
+        $$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$
+        <h2>2. Expandimos f(x + h):</h2>
+      `;
+
+      pol.forEach((t, i) => {
+        const expansion = expandBinomio(t.coef, t.exp);
+        fxhTerms.push(...expansion);
+        let fx = `${t.coef !== 1 ? t.coef : ''}x${t.exp > 1 ? '^' + t.exp : (t.exp === 1 ? '' : '')}`;
+        fxTerms.push(fx);
+        pasos += `<p>Término ${i+1}: $$${t.coef}(x + h)^${t.exp} = ${expansion.join(' + ')}$$</p>`;
       });
-    }
 
-    function expandBinomio(termino) {
-      const { coef, exp } = termino;
-      let expansion = [];
-      for (let k = 0; k <= exp; k++) {
-        const binomial = factorial(exp) / (factorial(k) * factorial(exp - k));
-        const c = coef * binomial;
-        const xPow = exp - k;
-        const hPow = k;
-        let part = '';
-        if (c !== 0) {
-          if (xPow > 0) part += `x${xPow > 1 ? '^' + xPow : ''}`;
-          if (hPow > 0) part += `h${hPow > 1 ? '^' + hPow : ''}`;
-          if (xPow === 0 && hPow === 0) part += '1';
-          expansion.push((c === 1 ? '' : c) + part);
-        }
-      }
-      return expansion.join(' + ');
-    }
+      pasos += `<h2>3. Sustituimos en la fórmula:</h2>`;
+      pasos += `$$\\frac{[${fxhTerms.join(' + ')}] - [${fxTerms.join(' + ')}]}{h}$$`;
 
-    function factorial(n) {
-      return n <= 1 ? 1 : n * factorial(n - 1);
-    }
+      // restar fx a fxh
+      const restados = fxhTerms.concat(fxTerms.map(t => '-' + t));
+      const simplificados = simplificar(restados);
 
-    function resolverDerivada() {
-      const fx = document.getElementById("funcion").value;
-      const pasosDiv = document.getElementById("steps");
-      const resultDiv = document.getElementById("result");
+      pasos += `<h2>4. Simplificamos el numerador:</h2>$$${simplificados.join(' + ')}$$`;
 
-      try {
-        const terminos = parsePolinomio(fx);
-        let fxh_parts = [];
-        let fx_parts = [];
+      const divididos = simplificados.map(t => `\\frac{${t}}{h}`);
+      pasos += `<h2>5. Dividimos todo entre h:</h2>$$${divididos.join(' + ')}$$`;
 
-        let pasos = `
-          <h2>1. Aplicamos la fórmula del límite:</h2>
-          $$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$
-          <h2>2. Expandimos cada término de f(x + h):</h2>
-        `;
-
-        terminos.forEach((t, i) => {
-          const expansion = expandBinomio(t);
-          fxh_parts.push(expansion);
-          fx_parts.push(`${t.coef !== 1 ? t.coef : ''}x${t.exp > 1 ? '^' + t.exp : (t.exp === 1 ? '' : '')}`);
-          pasos += `
-            <p>Término ${i + 1}: $$${t.coef !== 1 ? t.coef : ''}x^${t.exp}$$</p>
-            <p>Expandimos:</p>
-            $$${t.coef}(x + h)^${t.exp} = ${expansion}$$
-          `;
+      const cancelados = divididos.map(t => {
+        return t.replace(/\\frac\{(.*?)h(\^\d+)?\}\{h\}/, (_, base, pot) => {
+          if (!pot) return base;
+          const newPot = parseInt(pot.replace('^', '')) - 1;
+          return base + (newPot > 0 ? 'h^' + newPot : '');
         });
+      });
 
-        const fxh = fxh_parts.join(' + ').replace(/\+\s\-/g, '- ');
-        const fxNormal = fx_parts.join(' + ').replace(/\+\s\-/g, '- ');
+      const resultadoFinal = cancelados.filter(t => !t.includes('h')).join(' + ').replace(/\+\s\-/g, '- ');
 
-        pasos += `
-          <h2>3. Sustituimos en la fórmula:</h2>
-          $$\\frac{(${fxh}) - (${fxNormal})}{h}$$
-        `;
+      pasos += `<h2>6. Aplicamos el límite cuando h → 0:</h2>$$f'(x) = ${resultadoFinal || '0'}$$`;
 
-        // Simplificar: cancelar términos con x^n (los f(x))
-        const cancelados = fx_parts;
-        let numerador = fxh_parts.join(' + ');
-        cancelados.forEach(c => {
-          numerador = numerador.replace(c, '');
-        });
-
-        pasos += `
-          <h2>4. Cancelamos los términos comunes y simplificamos:</h2>
-          $$\\frac{${numerador}}{h}$$
-        `;
-
-        // Dividir cada término entre h
-        const divididos = numerador.split('+').map(t => t.trim()).filter(Boolean).map(term => {
-          return `\\frac{${term}}{h}`;
-        });
-
-        pasos += `
-          <h2>5. Dividimos cada término por h:</h2>
-          $$${divididos.join(' + ')}$$
-        `;
-
-        const resultadoFinal = divididos.map(frac => {
-          return frac.replace(/\\frac{(.+?)h(\^\d+)?}{h}/, (_, x, hExp) => {
-            if (!hExp) return x;
-            const power = parseInt(hExp.replace('^', ''));
-            if (power === 2) return x + 'h';
-            if (power > 2) return x + 'h^' + (power - 1);
-            return x;
-          });
-        }).filter(t => !t.includes('h')).join(' + ').replace(/\+\s\-/g, '- ');
-
-        pasos += `
-          <h2>6. Tomamos el límite cuando h → 0 (se anulan los términos con h):</h2>
-          $$f'(x) = ${resultadoFinal || '0'}$$
-        `;
-
-        pasosDiv.innerHTML = pasos;
-        resultDiv.innerHTML = `<h2>Resultado Final</h2><p>$$f'(x) = ${resultadoFinal || '0'}$$</p>`;
-        MathJax.typeset();
-      } catch (err) {
-        pasosDiv.innerHTML = 'Error en el formato de la función. Usa solo funciones polinómicas como `x^2 + 2x + 1`.';
-        resultDiv.innerHTML = '';
-      }
+      pasosDiv.innerHTML = pasos;
+      resultadoDiv.innerHTML = `<h2>Resultado Final</h2><p>$$f'(x) = ${resultadoFinal || '0'}$$</p>`;
+      MathJax.typeset();
+    } catch (e) {
+      pasosDiv.innerHTML = 'Error: función no válida. Usa solo polinomios como `x^2 + 2x + 1`.';
+      resultadoDiv.innerHTML = '';
     }
-  </script>
+  }
+</script>
 </body>
 </html>
