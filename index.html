@@ -1,180 +1,89 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Derivadas por el Método Largo</title>
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 30px; }
-    .container { background: white; padding: 20px; border-radius: 10px; max-width: 900px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, button { padding: 10px; font-size: 16px; width: 100%; margin-top: 10px; }
-    button { background: #007BFF; color: white; border: none; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    #result { margin-top: 30px; background: #e6f9ff; padding: 20px; border-radius: 10px; }
-    canvas { margin-top: 30px; background: #fff; border: 1px solid #ccc; padding: 10px; border-radius: 10px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Calculadora de Derivadas - Método Largo + Gráfica</h1>
-    <p>Escribe una función polinómica como <code>3x^2 + 2x</code>:</p>
-    <input type="text" id="funcion" placeholder="Ejemplo: x^2 + 2x + 1">
-    <button onclick="resolver()">Resolver derivada paso a paso</button>
+function calcularDerivada() 
+  const fInput = document.getElementById('func').value.trim();
+  const x0 = parseFloat(document.getElementById('x0').value);
+  const resultadoDiv = document.getElementById('resultado');
+  const stepsDiv = document.getElementById('steps');
 
-    <div id="result"></div>
+  if (!fInput) {
+    alert('Por favor ingrese una función válida.');
+    return;
+  }
+  if (isNaN(x0)) {
+    alert('Por favor ingrese un número válido para x₀.');
+    return;
+  }
 
-    <canvas id="grafica" width="800" height="400"></canvas>
-  </div>
+  const fStr = parseFunction(fInput);
 
-  <script>
-    function resolver() {
-      const entrada = document.getElementById('funcion').value;
-      const resultDiv = document.getElementById('result');
-      const terminos = entrada.split('+').map(t => t.trim());
-      let pasos = `
-        <h2>Proceso paso a paso con el límite:</h2>
-        <p>Usamos la fórmula:</p>
-        $$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$
-      `;
+  let fEval;
+  try {
+    fEval = math.compile(fStr);
+    fEval.evaluate({ x: x0 });
+  } catch (e) {
+    alert('Error en la función ingresada. Revisa la sintaxis.');
+    return;
+  }
 
-      let derivadaFinal = [];
-      let funcionOriginal = x => 0;
-      let funcionDerivada = x => 0;
+  // Método largo: cociente de diferencias centrado
+  const hs = [0.01, 0.005, 0.0025, 0.00125]; // h estables
+  let pasosTexto = `Función: f(x) = ${fInput}\nPunto de derivación: x₀ = ${x0}\n\n`;
+  pasosTexto += "Método largo:\n";
+  pasosTexto += "f'(x₀) ≈ [f(x₀ + h) - f(x₀ - h)] / (2h)\n\n";
 
-      terminos.forEach((termino, i) => {
-        let coef = 1, exp = 1;
+  let sumaDerivadas = 0;
+  let derivadasAprox = [];
 
-        if (!termino.includes('x')) {
-          coef = parseFloat(termino);
-          pasos += `
-            <h3>Término ${i+1}: ${coef}</h3>
-            <p>Es constante, entonces:</p>
-            $$\\frac{d}{dx}(${coef}) = 0$$
-          `;
-          funcionOriginal = sumFuncs(funcionOriginal, () => coef);
-          return;
-        }
+  hs.forEach((h, i) => {
+    const fxph = fEval.evaluate({ x: x0 + h });
+    const fxmh = fEval.evaluate({ x: x0 - h });
+    const deriv = (fxph - fxmh) / (2 * h);
+    derivadasAprox.push(deriv);
+    sumaDerivadas += deriv;
 
-        if (/^\d*x$/.test(termino)) {
-          coef = parseFloat(termino.replace('x', '')) || 1;
-          exp = 1;
-        } else if (/^\d*x\^\d+$/.test(termino)) {
-          const partes = termino.split('x^');
-          coef = parseFloat(partes[0]) || 1;
-          exp = parseInt(partes[1]);
-        } else if (/^x\^\d+$/.test(termino)) {
-          coef = 1;
-          exp = parseInt(termino.split('^')[1]);
-        } else if (termino === 'x') {
-          coef = 1; exp = 1;
-        }
+    pasosTexto += `Paso ${i + 1}: h = ${h}\n`;
+    pasosTexto += `f(${x0} + ${h}) = ${fxph.toFixed(8)}\n`;
+    pasosTexto += `f(${x0} - ${h}) = ${fxmh.toFixed(8)}\n`;
+    pasosTexto += `Aproximación = (${fxph.toFixed(8)} - ${fxmh.toFixed(8)}) / (${2 * h}) = ${deriv.toFixed(8)}\n\n`;
+  });
 
-        const fxh = expandirBinomio(coef, exp);
-        const fx = `${coef}x^${exp}`;
-        const resta = `(${fxh}) - (${fx})`;
+  const derivadaLarga = sumaDerivadas / hs.length;
 
-        pasos += `
-          <h3>Término ${i+1}: ${coef === 1 ? '' : coef}x^${exp}</h3>
-          <p>1. Calculamos \( f(x+h) \):</p>
-          $$f(x+h) = ${fxh}$$
-          <p>2. Restamos \( f(x+h) - f(x) \):</p>
-          $$${resta}$$
-          <p>3. Dividimos entre h:</p>
-          $$\\frac{${resta}}{h}$$
-          <p>4. Simplificamos (cancelamos h):</p>
-          $$\\Rightarrow ${mostrarSimplificado(coef, exp)}$$
-          <p>5. Aplicamos el límite:</p>
-          $$\\lim_{h \\to 0} (${mostrarSimplificado(coef, exp)}) = ${coef * exp}x^{${exp-1}}$$
-        `;
+  // Derivada simbólica
+  let derivadaSimbolicaStr;
+  let derivadaSimbolica;
+  try {
+    const node = math.parse(fStr);
+    const derivNode = math.derivative(node, 'x');
+    derivadaSimbolicaStr = derivNode.toString();
+    derivadaSimbolica = derivNode.evaluate({ x: x0 });
+  } catch (e) {
+    derivadaSimbolicaStr = "Error al derivar simbólicamente.";
+    derivadaSimbolica = NaN;
+  }
 
-        const nuevaDerivada = `${coef * exp}x${exp-1 === 1 ? '' : exp-1 === 0 ? '' : '^' + (exp-1)}`;
-        derivadaFinal.push(nuevaDerivada);
+  pasosTexto += `Método corto:\n`;
+  pasosTexto += `f'(x) = ${derivadaSimbolicaStr}\n`;
+  pasosTexto += `f'(${x0}) = ${derivadaSimbolica?.toFixed(8)}\n\n`;
 
-        // Funciones para graficar
-        funcionOriginal = sumFuncs(funcionOriginal, x => coef * Math.pow(x, exp));
-        funcionDerivada = sumFuncs(funcionDerivada, x => coef * exp * Math.pow(x, exp - 1));
-      });
+  const diferencia = Math.abs(derivadaLarga - derivadaSimbolica);
 
-      pasos += `<h2>Resultado final:</h2>
-                $$f'(x) = ${derivadaFinal.join(' + ')}$$`;
+  pasosTexto += `Comparación:\n`;
+  pasosTexto += `Método largo ≈ ${derivadaLarga.toFixed(8)}\n`;
+  pasosTexto += `Método corto ≈ ${derivadaSimbolica.toFixed(8)}\n`;
+  pasosTexto += `Diferencia absoluta = ${diferencia.toExponential(2)}\n`;
 
-      resultDiv.innerHTML = pasos;
-      MathJax.typeset();
+  if (diferencia < 1e-4) {
+    pasosTexto += "\n✅ Ambos métodos coinciden correctamente.";
+  } else {
+    pasosTexto += "\n⚠️ Existe una diferencia notable. Revisa si la función es discontinua, no derivable o si requiere un punto válido en su dominio.";
+  }
 
-      graficar(funcionOriginal, funcionDerivada);
-    }
+  resultadoDiv.innerHTML = `
+    <b>Resultado final:</b><br>
+    Derivada por límite ≈ <b>${derivadaLarga.toFixed(8)}</b><br>
+    Derivada simbólica ≈ <b>${derivadaSimbolica.toFixed(8)}</b>
+  `;
+  stepsDiv.textContent = pasosTexto;
 
-    function expandirBinomio(a, n) {
-      if (n === 1) return `${a}x + ${a}h`;
-      if (n === 2) return `${a}x^2 + ${2*a}xh + ${a}h^2`;
-      if (n === 3) return `${a}x^3 + ${3*a}x^2h + ${3*a}xh^2 + ${a}h^3`;
-      return `${a}(x+h)^${n}`;
-    }
-
-    function mostrarSimplificado(a, n) {
-      if (n === 1) return `${a}`;
-      if (n === 2) return `${2*a}x + ${a}h`;
-      if (n === 3) return `${3*a}x^2 + ${3*a}xh + ${a}h^2`;
-      return `${a * n}x^${n - 1}`;
-    }
-
-    function sumFuncs(f1, f2) {
-      return function (x) {
-        return f1(x) + f2(x);
-      };
-    }
-
-    function graficar(funcionOriginal, funcionDerivada) {
-      const labels = [], datosOriginal = [], datosDerivada = [];
-
-      for (let x = -10; x <= 10; x += 0.5) {
-        labels.push(x.toFixed(2));
-        datosOriginal.push(funcionOriginal(x));
-        datosDerivada.push(funcionDerivada(x));
-      }
-
-      const ctx = document.getElementById('grafica').getContext('2d');
-      if (window.miGrafica) window.miGrafica.destroy();
-
-      window.miGrafica = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: 'f(x)',
-              data: datosOriginal,
-              borderWidth: 2,
-              fill: false,
-              borderColor: 'blue'
-            },
-            {
-              label: "f'(x)",
-              data: datosDerivada,
-              borderWidth: 2,
-              fill: false,
-              borderColor: 'red'
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: { title: { display: true, text: 'x' } },
-            y: { title: { display: true, text: 'f(x), f\'(x)' } }
-          },
-          plugins: {
-            title: {
-              display: true,
-              text: 'Gráfica de la Función y su Derivada'
-            }
-          }
-        }
-      });
-    }
-  </script>
-</body>
-</html>
+  graficarFuncionYDerivada(fEval, derivadaSimbolica, x0);
+}
