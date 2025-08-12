@@ -1,257 +1,90 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calculadora de derivadas — Primeros principios (reparada)</title>
-  <style>
-    :root{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
-    body{max-width:1100px;margin:16px auto;padding:18px;background:#f5f7fb;border-radius:10px;color:#0b1220}
-    h1{font-size:20px;margin-bottom:6px}
-    .card{background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(11,18,32,0.06);margin-bottom:12px}
-    label{display:block;font-weight:600;margin-top:8px}
-    input[type=text], textarea, select{width:100%;padding:8px;border-radius:6px;border:1px solid #d6dbe6}
-    .row{display:flex;gap:12px}
-    .col{flex:1}
-    button{background:#2563eb;color:white;padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
-    pre{background:#0b122033;padding:12px;border-radius:8px;overflow:auto}
-    .small{font-size:13px;color:#3a4758}
-    canvas{background:#fff;border-radius:8px}
-    .hint{font-size:13px;color:#556070}
-    .error{color:#a41e1e;font-weight:700}
-    .ok{color:#115e22;font-weight:700}
-    .flex{display:flex;gap:8px;align-items:center}
-  </style>
+    <meta charset="UTF-8">
+    <title>Calculadora de Derivadas - Método Largo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input, button { padding: 5px; margin: 5px; }
+        #grafico { width: 100%; height: 500px; }
+        .pasos { background: #f8f8f8; padding: 10px; border-radius: 5px; margin-top: 10px; }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Calculadora de derivadas — Método de los primeros principios</h1>
-    <div class="small">Esta versión fue reescrita para corregir errores. Ingresa funciones en <code>x</code>. Usa <code>^</code> para potencias. Soporta: <code>sin, cos, tan, exp, ln, log, sqrt, abs</code>, potencias, fracciones y combinaciones.</div>
-  </div>
 
-  <div class="card">
-    <label for="func">Función f(x)</label>
-    <input id="func" type="text" value="x^3 + 2*x^2 - 5*x + 1" />
-    <div class="row" style="margin-top:10px">
-      <div class="col">
-        <label for="xval">Valor de x para evaluar (opcional)</label>
-        <input id="xval" type="text" placeholder="ej. 2" />
-      </div>
-      <div class="col">
-        <label for="range">Rango para la gráfica</label>
-        <input id="range" type="text" value="-5,5" placeholder="min,max" />
-      </div>
-    </div>
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <button id="calcBtn">Calcular derivada (método largo)</button>
-      <button id="quickBtn">Calcular (rápido)</button>
-      <button id="downloadBtn">Descargar HTML</button>
-    </div>
-    <div class="hint" style="margin-top:8px">Ejemplos: <code>x^2</code>, <code>sin(x)</code>, <code>ln(x)</code>, <code>exp(2*x)</code>, <code>1/(x+1)</code>, <code>sqrt(x)</code>.</div>
-  </div>
+<h2>Calculadora de Derivadas (Método del Límite)</h2>
+<p>Ingresa una función en términos de <b>x</b>, por ejemplo: <code>x^2 + 3*x + 2</code> o <code>sin(x)</code></p>
 
-  <div id="stepsCard" class="card" style="display:block">
-    <h2 style="margin:0 0 8px 0">Pasos (detallados)</h2>
-    <div id="steps" class="small"></div>
-  </div>
+<input type="text" id="funcion" placeholder="f(x) = " size="40">
+<input type="number" id="punto" placeholder="Punto a evaluar" step="any">
+<button onclick="calcular()">Calcular derivada</button>
 
-  <div class="card">
-    <h2 style="margin:0 0 8px 0">Resultado y verificación</h2>
-    <pre id="result">Esperando cálculo...</pre>
-  </div>
+<div id="resultado"></div>
+<div id="grafico"></div>
 
-  <div class="card">
-    <h2 style="margin:0 0 8px 0">Gráfica (f y f')</h2>
-    <canvas id="chart" width="900" height="350"></canvas>
-  </div>
+<script>
+function calcular() {
+    const exprInput = document.getElementById("funcion").value;
+    const punto = parseFloat(document.getElementById("punto").value);
 
-  <div class="card small">
-    <strong>Resumen del método:</strong>
-    <p>Usamos la definición: <code>f'(x)=lim_{h->0} (f(x+h)-f(x))/h</code>. Se construye simbólicamente el cociente de diferencias, se expande y simplifica con Algebrite, se calcula el límite si es posible y se compara con <code>d(f)/dx</code> obtenido por reglas estándar.</p>
-  </div>
-
-  <!-- librerías -->
-  <script src="https://unpkg.com/algebrite"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-  <script>
-    // --- Utilidades para seguridad y conversión ---
-    function escapeHtml(unsafe){ return (unsafe||'').replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m];}); }
-
-    // Convierte expresiones tipo Algebrite a JS para evaluación numérica
-    function exprToJsForEval(expr){
-      if(!expr) return null;
-      let t = String(expr);
-      // Reemplazar ^ por ** para JS
-      t = t.replace(/\^/g,'**');
-      // Mapear funciones comunes (palabras completas)
-      const mapping = {
-        'sin': 'Math.sin', 'cos': 'Math.cos', 'tan': 'Math.tan', 'asin': 'Math.asin', 'acos': 'Math.acos', 'atan': 'Math.atan',
-        'exp': 'Math.exp', 'sqrt': 'Math.sqrt', 'abs': 'Math.abs', 'log': 'Math.log', 'ln': 'Math.log',
-        'floor':'Math.floor','ceil':'Math.ceil'
-      };
-      Object.keys(mapping).forEach(function(k){
-        // Reemplazo seguro: usar RegExp con límite de palabra
-        const r = new RegExp('\\b'+k+'\\b','g');
-        t = t.replace(r, mapping[k]);
-      });
-      // constantes
-      t = t.replace(/\bpi\b/g,'Math.PI');
-      t = t.replace(/\be\b/g,'Math.E');
-      return t;
+    if (!exprInput) {
+        alert("Por favor ingresa una función.");
+        return;
+    }
+    if (isNaN(punto)) {
+        alert("Por favor ingresa un punto numérico para evaluar.");
+        return;
     }
 
-    // Crea función JS segura a partir de expresión
-    function buildJsFunction(expr){
-      const js = exprToJsForEval(expr);
-      if(!js) return null;
-      try{
-        // eslint-disable-next-line no-new-func
-        return new Function('x', 'return ('+js+');');
-      }catch(e){
-        return null;
-      }
+    try {
+        // Método largo: límite del cociente de diferencias
+        const h = 1e-6;
+        const scope1 = { x: punto + h };
+        const scope2 = { x: punto };
+
+        const f1 = math.evaluate(exprInput, scope1);
+        const f2 = math.evaluate(exprInput, scope2);
+
+        const derivadaLarga = (f1 - f2) / h;
+
+        // Método corto: derivada directa con math.js
+        const derivadaExpr = math.derivative(exprInput, "x").toString();
+        const derivadaCortaValor = math.evaluate(derivadaExpr, { x: punto });
+
+        // Mostrar resultados
+        document.getElementById("resultado").innerHTML = `
+            <div class="pasos">
+                <h3>Proceso paso a paso</h3>
+                <p>Usando la definición: \\( f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h} \\)</p>
+                <p>f(${punto}+h) = ${f1.toFixed(6)}</p>
+                <p>f(${punto}) = ${f2.toFixed(6)}</p>
+                <p>Resultado método largo: <b>${derivadaLarga.toFixed(6)}</b></p>
+                <p>Derivada (método corto) = ${derivadaExpr}</p>
+                <p>Valor método corto en x=${punto}: <b>${derivadaCortaValor.toFixed(6)}</b></p>
+            </div>
+        `;
+
+        // Graficar función y derivada
+        const xVals = math.range(punto - 5, punto + 5, 0.1).toArray();
+        const yVals = xVals.map(x => math.evaluate(exprInput, {x}));
+        const yDeriv = xVals.map(x => math.evaluate(derivadaExpr, {x}));
+
+        const trace1 = { x: xVals, y: yVals, type: 'scatter', name: 'f(x)' };
+        const trace2 = { x: xVals, y: yDeriv, type: 'scatter', name: "f'(x)" };
+
+        Plotly.newPlot('grafico', [trace1, trace2], {
+            title: 'Función y su Derivada',
+            xaxis: { title: 'x' },
+            yaxis: { title: 'y' }
+        });
+
+    } catch (err) {
+        alert("Error: " + err.message);
     }
+}
+</script>
 
-    // Diferencia central numérica para aproximar límite
-    function numericLimitEval(fStr, x0){
-      const fnum = buildJsFunction(fStr);
-      if(!fnum) return NaN;
-      const hs = [1e-1,1e-2,1e-3,1e-4,1e-5,1e-6,1e-7];
-      let prev = null;
-      for(const h of hs){
-        const val = (fnum(x0 + h) - fnum(x0 - h)) / (2*h);
-        if(prev!==null && Math.abs(val - prev) < 1e-8) return val;
-        prev = val;
-      }
-      return prev;
-    }
-
-    // --- Computación simbólica con Algebrite ---
-    let chart = null;
-    document.getElementById('calcBtn').addEventListener('click', function(){ compute(false); });
-    document.getElementById('quickBtn').addEventListener('click', function(){ compute(true); });
-    document.getElementById('downloadBtn').addEventListener('click', downloadHtml);
-
-    function compute(quick){
-      const fInput = document.getElementById('func').value.trim();
-      const xvalStr = document.getElementById('xval').value.trim();
-      const range = document.getElementById('range').value.trim();
-      const stepsEl = document.getElementById('steps');
-      const resultEl = document.getElementById('result');
-
-      stepsEl.innerHTML = '';
-      resultEl.textContent = 'Calculando...';
-
-      if(!fInput){ resultEl.innerHTML = '<span class="error">Introduce una función válida en x.</span>'; return; }
-
-      try{
-        // preparar expresión para Algebrite: eliminar espacios (Algebrite tolera '^')
-        const f = fInput.replace(/\s+/g,'');
-
-        // generar f(x+h) usando subst para evitar reemplazos frágiles
-        const f_plus = Algebrite.run('subst(x, x+h, ' + f + ')');
-        const diffQuotient = '('+f_plus+' - ('+f+')) / h';
-
-        const expanded = Algebrite.run('expand(' + diffQuotient + ')');
-        const simplified = Algebrite.run('simplify(' + expanded + ')');
-        const factored = Algebrite.run('factor(' + simplified + ')');
-
-        // intentar límite simbólico
-        let limit = null;
-        try{
-          limit = Algebrite.run('limit(' + simplified + ', h, 0)');
-          if(!limit || String(limit).trim()==='') limit = null;
-        }catch(e){ limit = null; }
-
-        // derivada por reglas
-        let derivShort = null;
-        try{ derivShort = Algebrite.run('d(' + f + ', x)'); }catch(e){ derivShort = null; }
-
-        // fallback numérico si no hay límite simbólico
-        let numericVal = null;
-        const xEval = xvalStr ? parseFloat(xvalStr) : 1;
-        if(limit===null){ numericVal = numericLimitEval(fInput, xEval); }
-
-        // mostrar pasos
-        let htmlSteps = '';
-        htmlSteps += '<strong>1.</strong> f(x+h):<pre>'+escapeHtml(String(f_plus))+'</pre>';
-        htmlSteps += '<strong>2.</strong> Cociente de diferencias:<pre>'+escapeHtml(String(diffQuotient))+'</pre>';
-        htmlSteps += '<strong>3.</strong> Expandido:<pre>'+escapeHtml(String(expanded))+'</pre>';
-        htmlSteps += '<strong>4.</strong> Simplificado:<pre>'+escapeHtml(String(simplified))+'</pre>';
-        htmlSteps += '<strong>5.</strong> Factorizado:<pre>'+escapeHtml(String(factored))+'</pre>';
-        if(limit!==null) htmlSteps += '<strong>6.</strong> Límite h→0:<pre>'+escapeHtml(String(limit))+'</pre>';
-        else htmlSteps += '<strong class="error">6.</strong> No se obtuvo límite simbólico — aproximación numérica en x='+xEval+': <pre>'+escapeHtml(String(numericVal))+'</pre>';
-        stepsEl.innerHTML = htmlSteps;
-
-        // verificación simbólica
-        let verification = '';
-        if(limit!==null && derivShort){
-          try{
-            const diffCheck = Algebrite.run('simplify((' + limit + ')-(' + derivShort + '))');
-            if(String(diffCheck).replace(/\s+/g,'')==='0') verification = '<span class="ok">¡Coinciden simbólicamente! (diferencia = 0)</span>';
-            else verification = '<span class="error">No coinciden simbólicamente. Diferencia: '+escapeHtml(String(diffCheck))+'</span>';
-          }catch(e){ verification = 'Verificación simbólica falló.'; }
-        }else if(derivShort){
-          verification = 'Derivada por reglas: '+escapeHtml(String(derivShort)) + (numericVal!==null ? (' | Aprox. numérica en x='+xEval+': '+numericVal) : '');
-        }else{
-          verification = 'No se pudo obtener derivada por reglas.';
-        }
-
-        // resultado final
-        let resultText = '';
-        if(limit!==null) resultText += 'Derivada (por definición):\n' + String(limit) + '\n\n';
-        else resultText += 'Derivada (por definición) no encontrada simbólicamente. Aproximación numérica en x='+xEval+':\n' + String(numericVal) + '\n\n';
-        resultText += 'Derivada (por reglas):\n' + (derivShort || '—') + '\n\nVerificación:\n' + verification;
-        resultEl.textContent = resultText;
-
-        if(!quick){
-          const fFn = buildJsFunction(fInput);
-          const derivExpr = limit || derivShort;
-          const dFn = derivExpr ? buildJsFunction(String(derivExpr)) : null;
-          drawChart(fFn, dFn, range);
-        }
-
-      }catch(err){
-        console.error(err);
-        document.getElementById('result').innerHTML = '<span class="error">Error: '+escapeHtml(String(err))+'</span>';
-      }
-    }
-
-    function drawChart(fFn, dFn, rangeStr){
-      const canvas = document.getElementById('chart');
-      let min = -5, max = 5;
-      if(rangeStr){
-        const parts = rangeStr.split(',').map(function(s){return parseFloat(s.trim());});
-        if(parts.length===2 && !isNaN(parts[0]) && !isNaN(parts[1])){ min = parts[0]; max = parts[1]; }
-      }
-      const N = 300;
-      const xs = new Array(N+1);
-      const ys = new Array(N+1);
-      const yds = new Array(N+1);
-      for(let i=0;i<=N;i++){
-        const x = min + (max-min)*i/N;
-        xs[i] = x;
-        try{ ys[i] = fFn ? Number(fFn(x)) : NaN; }catch(e){ ys[i] = NaN; }
-        try{ yds[i] = dFn ? Number(dFn(x)) : NaN; }catch(e){ yds[i] = NaN; }
-      }
-
-      if(chart) chart.destroy();
-      chart = new Chart(canvas.getContext('2d'),{
-        type:'line',
-        data:{ labels: xs, datasets:[ {label:'f(x)', data: ys, fill:false, tension:0.2, borderWidth:2}, {label:"f'(x)", data: yds, fill:false, tension:0.2, borderWidth:2, borderDash:[6,4]} ] },
-        options:{ scales:{ x:{ title:{display:true,text:'x'} }, y:{ title:{display:true,text:'y'} } } }
-      });
-    }
-
-    function downloadHtml(){
-      const blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'calculadora-derivadas.html';
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    }
-
-  </script>
 </body>
 </html>
