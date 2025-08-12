@@ -1,87 +1,63 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Calculadora de Derivadas - Método Largo</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        input, button { padding: 5px; margin: 5px; }
-        #grafico { width: 100%; height: 500px; }
-        .pasos { background: #f8f8f8; padding: 10px; border-radius: 5px; margin-top: 10px; }
-    </style>
+<meta charset="UTF-8">
+<title>Calculadora de Derivadas - Método Largo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+<style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    input, button { padding: 8px; margin-top: 10px; width: 100%; }
+    .resultado { background: white; padding: 15px; margin-top: 20px; border-radius: 5px; }
+    h1 { color: #333; }
+</style>
 </head>
 <body>
 
-<h2>Calculadora de Derivadas (Método del Límite)</h2>
-<p>Ingresa una función en términos de <b>x</b>, por ejemplo: <code>x^2 + 3*x + 2</code> o <code>sin(x)</code></p>
+<h1>Derivadas por el método del límite</h1>
+<p>Escribe tu función f(x):</p>
+<input type="text" id="funcion" placeholder="Ejemplo: x^2 + 3*x + 1">
+<button onclick="calcular()">Calcular Derivada</button>
 
-<input type="text" id="funcion" placeholder="f(x) = " size="40">
-<input type="number" id="punto" placeholder="Punto a evaluar" step="any">
-<button onclick="calcular()">Calcular derivada</button>
-
-<div id="resultado"></div>
-<div id="grafico"></div>
+<div id="salida" class="resultado"></div>
 
 <script>
 function calcular() {
-    const exprInput = document.getElementById("funcion").value;
-    const punto = parseFloat(document.getElementById("punto").value);
-
+    let exprInput = document.getElementById("funcion").value.trim();
     if (!exprInput) {
-        alert("Por favor ingresa una función.");
-        return;
-    }
-    if (isNaN(punto)) {
-        alert("Por favor ingresa un punto numérico para evaluar.");
+        document.getElementById("salida").innerHTML = "<b>Error:</b> Ingresa una función.";
         return;
     }
 
     try {
-        // Método largo: límite del cociente de diferencias
-        const h = 1e-6;
-        const scope1 = { x: punto + h };
-        const scope2 = { x: punto };
+        let f = math.parse(exprInput);
+        let x = math.parse("x");
+        let h = math.parse("h");
 
-        const f1 = math.evaluate(exprInput, scope1);
-        const f2 = math.evaluate(exprInput, scope2);
-
-        const derivadaLarga = (f1 - f2) / h;
-
-        // Método corto: derivada directa con math.js
-        const derivadaExpr = math.derivative(exprInput, "x").toString();
-        const derivadaCortaValor = math.evaluate(derivadaExpr, { x: punto });
-
-        // Mostrar resultados
-        document.getElementById("resultado").innerHTML = `
-            <div class="pasos">
-                <h3>Proceso paso a paso</h3>
-                <p>Usando la definición: \\( f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h} \\)</p>
-                <p>f(${punto}+h) = ${f1.toFixed(6)}</p>
-                <p>f(${punto}) = ${f2.toFixed(6)}</p>
-                <p>Resultado método largo: <b>${derivadaLarga.toFixed(6)}</b></p>
-                <p>Derivada (método corto) = ${derivadaExpr}</p>
-                <p>Valor método corto en x=${punto}: <b>${derivadaCortaValor.toFixed(6)}</b></p>
-            </div>
-        `;
-
-        // Graficar función y derivada
-        const xVals = math.range(punto - 5, punto + 5, 0.1).toArray();
-        const yVals = xVals.map(x => math.evaluate(exprInput, {x}));
-        const yDeriv = xVals.map(x => math.evaluate(derivadaExpr, {x}));
-
-        const trace1 = { x: xVals, y: yVals, type: 'scatter', name: 'f(x)' };
-        const trace2 = { x: xVals, y: yDeriv, type: 'scatter', name: "f'(x)" };
-
-        Plotly.newPlot('grafico', [trace1, trace2], {
-            title: 'Función y su Derivada',
-            xaxis: { title: 'x' },
-            yaxis: { title: 'y' }
+        // f(x+h)
+        let f_xh = f.transform(function (node) {
+            if (node.isSymbolNode && node.name === "x") {
+                return math.parse("(x + h)");
+            }
+            return node;
         });
 
+        // Paso 1: f(x+h) - f(x)
+        let paso1 = new math.OperatorNode("-", "subtract", [f_xh, f]);
+        // Paso 2: (f(x+h) - f(x)) / h
+        let paso2 = new math.OperatorNode("/", "divide", [paso1, h]);
+        // Paso 3: simplificar
+        let simplificado = math.simplify(paso2);
+        // Paso 4: límite cuando h→0
+        let derivada = simplificado.evaluate({h: 0});
+
+        document.getElementById("salida").innerHTML = `
+            <b>Paso 1:</b> f(x+h) - f(x) = ${paso1.toString()}<br>
+            <b>Paso 2:</b> Cociente de diferencias = ${paso2.toString()}<br>
+            <b>Paso 3:</b> Simplificado = ${simplificado.toString()}<br>
+            <b>Paso 4:</b> Límite h→0 = <b>${derivada}</b>
+        `;
     } catch (err) {
-        alert("Error: " + err.message);
+        document.getElementById("salida").innerHTML = "<b>Error:</b> " + err.message;
     }
 }
 </script>
