@@ -3,283 +3,236 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calculadora de Derivadas — Método del límite (método largo)</title>
+  <title>Calculadora de derivadas — Método de los primeros principios</title>
   <style>
-    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
-    body{font-family:Inter, system-ui, Arial; background:linear-gradient(180deg,#071024 0%, #07162a 100%); color:#e6eef6; margin:0; padding:20px}
-    .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:18px}
-    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
-    h1{margin:0 0 8px;font-size:20px}
-    label{font-size:13px;color:var(--muted)}
-    input[type=text], textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--glass);color:inherit;margin-top:6px}
-    button{background:var(--accent);color:#012;border:none;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer}
-    pre{background:#021026;padding:10px;border-radius:8px;overflow:auto}
-    .steps{max-height:360px;overflow:auto;padding:8px}
-    .muted{color:var(--muted);font-size:13px}
-    .center{display:flex;gap:8px;align-items:center}
-    #plot{height:360px}
-    .small{font-size:13px}
-    footer{margin-top:16px;text-align:center;color:var(--muted);font-size:13px}
+    :root{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
+    body{max-width:1100px;margin:20px auto;padding:18px;background:#f7f9fc;border-radius:10px;color:#0b1220}
+    h1{font-size:20px;margin-bottom:4px}
+    .card{background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(11,18,32,0.06);margin-bottom:12px}
+    label{display:block;font-weight:600;margin-top:8px}
+    input[type=text], textarea, select{width:100%;padding:8px;border-radius:6px;border:1px solid #d6dbe6}
+    .row{display:flex;gap:12px}
+    .col{flex:1}
+    button{background:#2563eb;color:white;padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
+    pre{background:#0b122033;padding:12px;border-radius:8px;overflow:auto}
+    .small{font-size:13px;color:#3a4758}
+    canvas{background:#fff;border-radius:8px}
+    .hint{font-size:13px;color:#556070}
   </style>
-  <!-- Librerías: nerdamer para álgebra simbólica, Plotly para gráficos, MathJax para renderizar fórmulas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/nerdamer.core.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/Algebra.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/Calculus.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/Solve.js"></script>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Calculadora de derivadas — Método por límite (paso a paso)</h1>
-      <div class="muted">Introduce la función en variable <code>x</code>. Ejemplos: <code>x^2 + 3*x</code>, <code>sin(x)</code>, <code>ln(x)</code>, <code>e^x</code>, <code>(x^2+1)/(x-1)</code>.</div>
-
-      <div style="margin-top:12px">
-        <label>Función f(x)</label>
-        <input id="fn" type="text" value="x^2 + 3*x" />
-      </div>
-
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <div style="flex:1">
-          <label>Punto para evaluar (opcional)</label>
-          <input id="x0" type="text" placeholder="ej: 2  (dejar vacío para sin evaluar)" />
-        </div>
-        <div style="width:120px">
-          <label>Rango gráfico (±)</label>
-          <input id="range" type="text" value="5" />
-        </div>
-      </div>
-
-      <div style="margin-top:12px" class="center">
-        <button id="calc">Calcular (método largo)</button>
-        <div style="flex:1"></div>
-        <div class="small muted">Comparación automática con la derivada corta.</div>
-      </div>
-
-      <hr style="border:none;height:1px;background:#02172b;margin:12px 0"/>
-
-      <div>
-        <h3 style="margin:6px 0">Resultado simbólico</h3>
-        <div id="resultSym" class="small muted">Aquí aparecerá la derivada simbólica y la verificación.</div>
-      </div>
-
-      <div style="margin-top:10px">
-        <h3 style="margin:6px 0">Pasos (método largo)</h3>
-        <div class="steps" id="steps">Presiona "Calcular" para ver los pasos detallados — cada paso explica la sustitución f(x+h), la resta, la factorización por h y el límite h→0.</div>
-      </div>
-
-    </div>
-
-    <div class="card">
-      <h3>Gráfica detallada</h3>
-      <div id="plot"></div>
-      <div style="margin-top:8px">
-        <div class="muted">La gráfica muestra <strong>f(x)</strong> (línea continua) y <strong>f'(x)</strong> (línea punteada). Si se pide, también se dibuja el vector tangente en el punto seleccionado.</div>
-      </div>
-
-      <hr style="border:none;height:1px;background:#02172b;margin:12px 0"/>
-      <div>
-        <h4 style="margin:6px 0">Explicación breve del método usado</h4>
-        <div class="muted small">Usamos la definición del límite: <code>f'(x)=lim_{h→0} (f(x+h)-f(x))/h</code>. El "método largo" muestra la sustitución algebraica y la simplificación antes de tomar el límite; la "derivada corta" la calcula con la regla de derivación simbólica para verificar el resultado.</div>
-      </div>
-
-    </div>
+  <div class="card">
+    <h1>Calculadora de derivadas (primeros principios)</h1>
+    <div class="small">Introduce la función en <code>x</code>. Usa <code>^</code> para potencias y funciones: <code>sin(x)</code>, <code>cos(x)</code>, <code>ln(x)</code>, <code>exp(x)</code>, <code>sqrt(x)</code>.</div>
   </div>
 
-  <footer class="card" style="max-width:1100px;margin:18px auto;">Consejo: usa paréntesis cuando sea necesario: <code>(x+1)^2</code>. Para ln use <code>ln(x)</code>, para e^x escribe <code>exp(x)</code>.</footer>
+  <div class="card">
+    <label>Función f(x)</label>
+    <input id="func" type="text" value="x^3 + 2*x^2 - 5*x + 1" />
+    <div class="row" style="margin-top:10px">
+      <div class="col">
+        <label>Valor de x para evaluar (opcional)</label>
+        <input id="xval" type="text" placeholder="ej. 2" />
+      </div>
+      <div class="col">
+        <label>Rango para la gráfica</label>
+        <input id="range" type="text" value="-5,5" placeholder="min,max" />
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button onclick="compute()">Calcular derivada (método largo)</button>
+      <button onclick="compute(true)">Calcular y mostrar sólo resultado</button>
+    </div>
+    <div class="hint">Ejemplos de entrada: <code>x^2</code>, <code>sin(x)</code>, <code>ln(x)</code>, <code>exp(2*x)</code>, <code>sqrt(x)</code>, <code>1/(x+1)</code></div>
+  </div>
 
+  <div class="card" id="stepsCard" style="display:block">
+    <h2 style="margin:0 0 8px 0">Pasos (método de los primeros principios)</h2>
+    <div id="steps" class="small"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px 0">Resultado y verificación</h2>
+    <pre id="result">Esperando cálculo...</pre>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px 0">Gráfica (función y derivada)</h2>
+    <canvas id="chart" width="900" height="350"></canvas>
+  </div>
+
+  <div class="card small">
+    <strong>Explicación del método mostrado:</strong>
+    <p>El "método largo" toma la definición de derivada por límites: <code>f'(x)=lim_{h->0} (f(x+h)-f(x))/h</code>. El programa forma el cociente de diferencias, lo <em>expande</em> y <em>simplifica</em> simbólicamente, y luego toma el límite cuando h→0 (sustituyendo h=0 después de la simplificación). También calcula la derivada por el "método corto" (reglas de derivación) para verificar que ambos coincidan.</p>
+  </div>
+
+  <!-- Librerías necesarias -->
+  <script src="https://unpkg.com/algebrite"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // Utilidades pequeñas
-    function safeReplaceXwithXph(expr){
-      // Reemplaza la variable x únicamente cuando es una palabra independiente (\bx\b)
-      return expr.replace(/\bx\b/g, '(x+h)');
+    // Utilidades para convertir expresiones de entrada a JS para evaluar numéricamente
+    function exprToJS(s){
+      let t = s + '';
+      // reemplazos básicos
+      t = t.replace(/\^/g,'**');
+      // funciones comunes
+      const map = ['sin','cos','tan','asin','acos','atan','exp','ln','log','sqrt','abs','floor','ceil'];
+      map.forEach(fn=>{
+        // ln -> Math.log, log -> Math.log10? we'll map both to Math.log (natural)
+        const jsfn = (fn==='ln' || fn==='log') ? 'Math.log' : 'Math.'+fn;
+        const re = new RegExp('\\b'+fn+'\\s*\\(','g');
+        t = t.replace(re, jsfn + '(');
+      });
+      // constants
+      t = t.replace(/\bpi\b/g,'Math.PI');
+      t = t.replace(/\be\b/g,'Math.E');
+      return t;
     }
 
-    function toNerd(expr){
-      try{ return nerdamer(expr); }catch(e){ return null; }
-    }
-
-    function jsify(expr){
-      // Convierte una expresión matemática en código JS (para evaluación numérica)
-      let s = expr;
-      s = s.replace(/\^/g, '**');
-      s = s.replace(/\bln\b/g, 'Math.log');
-      s = s.replace(/\bexp\b/g, 'Math.exp');
-      s = s.replace(/\be\b/g, 'Math.E');
-      s = s.replace(/\bsin\b/g, 'Math.sin');
-      s = s.replace(/\bcos\b/g, 'Math.cos');
-      s = s.replace(/\btan\b/g, 'Math.tan');
-      s = s.replace(/\babs\b/g, 'Math.abs');
-      s = s.replace(/\bsqrt\b/g, 'Math.sqrt');
-      s = s.replace(/\blog10\b/g, 'Math.log10');
-      // proteger variables h y x cuando necesitemos
-      return s;
-    }
-
-    function makeFunctionFrom(expr){
-      const code = jsify(expr);
+    function safeEvalFunction(expr){
+      const js = exprToJS(expr);
       try{
-        return new Function('x','return ('+code+');');
+        // eslint-disable-next-line no-new-func
+        return new Function('x', 'return ('+js+');');
       }catch(e){
         return null;
       }
     }
 
-    function evaluateSafe(func, x){
-      try{ const v = func(x); if(!isFinite(v)) return NaN; return v;}catch(e){return NaN}
-    }
+    let chartInstance = null;
 
-    function simplifyStr(s){
-      try{ return nerdamer(s).expand().toString(); }catch(e){return s}
-    }
+    function compute(quick=false){
+      const f = document.getElementById('func').value.trim();
+      const xval = document.getElementById('xval').value.trim();
+      const range = document.getElementById('range').value.trim();
+      const stepsDiv = document.getElementById('steps');
+      const resultPre = document.getElementById('result');
 
-    document.getElementById('calc').addEventListener('click', ()=>{
-      const fraw = document.getElementById('fn').value.trim();
-      const x0raw = document.getElementById('x0').value.trim();
-      const range = Number(document.getElementById('range').value) || 5;
+      stepsDiv.innerHTML = '';
+      resultPre.textContent = 'Calculando...';
 
-      if(!fraw){ alert('Inserta una función válida en f(x)'); return; }
+      if(!f){ resultPre.textContent='Introduce una función válida.'; return; }
 
-      // 1) Construir f(x+h)
-      const fxph_str = safeReplaceXwithXph(fraw);
-      const fx_str = fraw;
-      const diff_str = `(${fxph_str}) - (${fx_str})`;
+      // 1) construir cociente de diferencias: (f(x+h)-f(x))/h
+      // hacemos un reemplazo de 'x' por '(x+h)' para la primera parcela
+      // Nota: remplazo simple — para funciones más complejas puede fallar si hay otras variables.
+      const h = 'h';
+      // envolver x con límites para evitar reemplazos dentro de otras palabras
+      const f_x_plus_h = f.replace(/\bx\b/g,'(x+'+h+')');
+      const fq = '(('+f_x_plus_h+')-('+f+'))/('+h+')';
 
-      // 2) Simplificar la resta y factorizar por h
-      let stepTexts = [];
-      stepTexts.push('<b>1) Sustitución:</b> f(x+h) = <code>'+escapeHtml(fxph_str)+'</code>');
-      stepTexts.push('<b>2) Diferencia:</b> f(x+h) - f(x) = <code>'+escapeHtml(diff_str)+'</code>');
-
-      let diff_simpl='';
+      // Usamos Algebrite para mostrar pasos simbólicos
       try{
-        diff_simpl = nerdamer(diff_str).expand().toString();
-        stepTexts.push('<b>3) Expansión / simplificación:</b> <code>'+escapeHtml(diff_simpl)+'</code>');
-      }catch(e){ diff_simpl = diff_str; stepTexts.push('<b>3) Expansión:</b> No se pudo expandir simbólicamente. Se muestra la diferencia original.'); }
+        const raw_diff = fq;
+        const expanded = Algebrite.run('expand(' + raw_diff + ')');
+        const simplified = Algebrite.run('simplify(' + expanded + ')');
+        const factored = Algebrite.run('factor(' + simplified + ')');
 
-      // Dividir por h (cociente de diferencias)
-      let quotient = '';
-      try{
-        quotient = nerdamer('('+diff_simpl+')/h').expand().toString();
-        stepTexts.push('<b>4) Cociente de diferencias:</b> (f(x+h)-f(x))/h = <code>'+escapeHtml(quotient)+'</code>');
-      }catch(e){ quotient = '('+diff_simpl+')/h'; stepTexts.push('<b>4) Cociente:</b> No se pudo simplificar la división por h simbólicamente.'); }
-
-      // Intentar cancelar h (factorizar y simplificar)
-      try{
-        // factor puede ayudar a ver factor h
-        const fact = nerdamer(diff_simpl).factor().toString();
-        stepTexts.push('<b>5) Factorización tentativa:</b> <code>'+escapeHtml(fact)+'</code>');
-      }catch(e){}
-
-      // Dividir y simplificar más
-      let quotient_simpl='';
-      try{ quotient_simpl = nerdamer(quotient).expand().toString(); }catch(e){ quotient_simpl = quotient }
-
-      // Límite h -> 0
-      let limitRes='';
-      try{
-        // sustituimos h->0
-        limitRes = nerdamer(quotient_simpl).evaluate({h:0}).toString();
-        // limpiar si sale 'infinity' o cosas raras
-        stepTexts.push('<b>6) Sustituir h→0:</b> Resultado simbólico: <code>'+escapeHtml(limitRes)+'</code>');
-      }catch(e){ limitRes = 'No se pudo evaluar el límite simbólicamente.'; stepTexts.push('<b>6) Límite:</b> No se pudo evaluar simbólicamente.'); }
-
-      // Derivada por método corto (verificación)
-      let deriv_short='';
-      try{
-        deriv_short = nerdamer('diff('+fx_str+', x)').expand().toString();
-      }catch(e){ deriv_short = 'No disponible'; }
-
-      // Simplificar ambas para comparar
-      const d_long_s = limitRes;
-      const d_short_s = deriv_short;
-
-      // Verificación numérica en varios puntos
-      let verificationMsg = '';
-      try{
-        const fFun = makeFunctionFrom(fx_str);
-        const dFun_short = makeFunctionFrom(d_short_s);
-        const dFun_long = makeFunctionFrom(d_long_s);
-
-        if(fFun && dFun_short && dFun_long){
-          const xs = [-2,-1,0,1,2].map(v=>v*(range/5));
-          let ok = true; let diffs = [];
-          xs.forEach(x=>{
-            const a = evaluateSafe(dFun_short, x);
-            const b = evaluateSafe(dFun_long, x);
-            if(isNaN(a) || isNaN(b)) { diffs.push('x='+x+': indef'); ok=false; }
-            else{ const diff = Math.abs(a-b); diffs.push('x='+x+': |short-long| = '+round(diff,10)); if(diff>1e-6) ok=false; }
-          });
-          verificationMsg = '<b>Verificación numérica (puntos):</b><br>'+diffs.join('<br>') + '<br><b>Coincide?:</b> ' + (ok? '<span style="color:#7ee787">Sí</span>' : '<span style="color:#ff8a8a">No exactamente</span>');
-        }else{
-          verificationMsg = '<i>No fue posible crear funciones numéricas para comparar.</i>';
-        }
-      }catch(e){ verificationMsg = '<i>Error durante la verificación numérica.</i>'; }
-
-      // Mostrar resultados
-      document.getElementById('steps').innerHTML = stepTexts.join('<br><br>');
-      const rs = '<div style="margin-top:6px"><b>Derivada (método largo, límite):</b> <code>'+escapeHtml(d_long_s)+'</code><br><b>Derivada (método corto):</b> <code>'+escapeHtml(d_short_s)+'</code><br><div style="margin-top:8px">'+verificationMsg+'</div></div>';
-      document.getElementById('resultSym').innerHTML = rs;
-
-      // Gráfica con Plotly
-      try{
-        const fFunNum = makeFunctionFrom(fx_str);
-        const dFunNum = makeFunctionFrom(d_short_s || d_long_s);
-        const xCenter = (x0raw!=='')? Number(x0raw) : 0;
-        const xmin = xCenter - range; const xmax = xCenter + range;
-        const N = 400; const xs = []; const ys = []; const yds = [];
-        for(let i=0;i<=N;i++){ const xv = xmin + (xmax-xmin)*i/N; xs.push(xv); ys.push(evaluateSafe(fFunNum,xv)); yds.push(evaluateSafe(dFunNum,xv)); }
-
-        const traces = [
-          {x:xs, y:ys, name:'f(x)', mode:'lines', line:{width:2}},
-          {x:xs, y:yds, name:"f'(x)", mode:'lines', line:{dash:'dashdot', width:2}}
-        ];
-
-        // Si el usuario dio un punto, dibujar tangente
-        if(x0raw!==''){
-          const x0 = Number(x0raw);
-          const y0 = evaluateSafe(fFunNum,x0);
-          const m = evaluateSafe(dFunNum,x0);
-          if(!isNaN(y0) && !isNaN(m)){
-            const xt = [x0-range*0.3, x0+range*0.3];
-            const yt = xt.map(x=> y0 + m*(x-x0));
-            traces.push({x:xt, y:yt, name:'Tangente en x0', mode:'lines', line:{width:2, dash:'dot'}});
-            traces.push({x:[x0], y:[y0], name:'Punto (x0)', mode:'markers', marker:{size:8}});
+        // Intento de límite: usar limit si existe, sino sustituir h=0 después de simplificar
+        let limit;
+        try{
+          limit = Algebrite.run('limit(' + simplified + ', h, 0)');
+          if(!limit || limit.trim()===''){
+            throw 'no limit';
+          }
+        }catch(e){
+          // fallback: sustituir h=0 (funciona si simplificó correctamente)
+          limit = Algebrite.run(simplified + ' |> subst(h,0)');
+          if(!limit || limit.trim()===''){
+            // última alternativa: eval numeric small h
+            const numericApprox = numericLimit(f, xval || 1); // fallback numeric
+            limit = numericApprox.toString();
           }
         }
 
-        Plotly.newPlot('plot', traces, {margin:{t:10}, legend:{bgcolor:'rgba(0,0,0,0)'}});
-      }catch(e){ document.getElementById('plot').innerHTML = '<div class="muted">No se pudo graficar: '+escapeHtml(String(e))+'</div>' }
+        const deriv_short = Algebrite.run('d(' + f + ', x)');
 
-      // Renderizar fórmulas con KaTeX para legibilidad (simple)
-      renderMathInSteps();
-    });
+        // Mostrar pasos detallados
+        stepsDiv.innerHTML = '<strong>1.</strong> Cociente de diferencias:<pre>'+escapeHtml(raw_diff)+'</pre>' +
+                             '<strong>2.</strong> Expandido:<pre>'+escapeHtml(expanded)+'</pre>' +
+                             '<strong>3.</strong> Simplificado:<pre>'+escapeHtml(simplified)+'</pre>' +
+                             '<strong>4.</strong> Factorizado (si aplica):<pre>'+escapeHtml(factored)+'</pre>' +
+                             '<strong>5.</strong> Límite cuando h→0 (derivada por definición):<pre>'+escapeHtml(limit)+'</pre>';
 
-    // Helpers
-    function escapeHtml(text){ return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-    function round(v,n){ return Math.round(v*Math.pow(10,n))/Math.pow(10,n); }
+        // Resultado y verificación
+        let verification = 'No se pudo verificar simbólicamente.';
+        try{
+          const diffCheck = Algebrite.run('simplify((' + limit + ')-(' + deriv_short + '))');
+          if(diffCheck.replace(/\s+/g,'') === '0' || diffCheck.trim()==='0') verification = '¡Coinciden! (diferencia = 0)';
+          else verification = 'No idénticos simbólicamente. Diferencia simplificada: ' + diffCheck;
+        }catch(e){ verification = 'Verificación simbólica falló.'; }
 
-    function renderMathInSteps(){
-      // Intento sencillo de convertir expresiones en latex-like para mostrar con KaTeX.
-      // Sustituye ^ por ^{...} y transforma diff(...) y limit si aparecen.
-      const stepsEl = document.getElementById('steps');
-      // No hacemos render completo para todo (puede ser pesado), pero intentamos mejorar símbolos comunes.
-      // También renderizamos el resultado simbólico en la parte superior.
-      const resultSym = document.getElementById('resultSym');
-      // KaTeX render básico: buscamos entre <code>...</code> y hacemos render.
-      const codes = Array.from(document.querySelectorAll('code'));
-      codes.forEach(c=>{
-        if(c.getAttribute('data-rendered')) return;
-        const txt = c.textContent;
-        try{ katex.render(txt, c, {throwOnError:false}); c.setAttribute('data-rendered','1'); }catch(e){}
+        resultPre.innerHTML = 'Derivada (método largo):\n' + limit + '\n\nDerivada (método corto):\n' + deriv_short + '\n\nVerificación: ' + verification;
+
+        if(quick) return; // no graficar si quick
+
+        // Preparar gráfica: convertir expresiones a funciones JS
+        const derivative_expr = limit;
+        const fFunc = safeEvalFunction(f);
+        const dFunc = safeEvalFunction(derivative_expr);
+        drawChart(fFunc, dFunc, range);
+
+      }catch(err){
+        console.error(err);
+        resultPre.textContent = 'Error al manipular simbólicamente. Asegúrate de usar "x" como variable y funciones reconocidas. Detalle: ' + err;
+      }
+    }
+
+    function numericLimit(f, x0){
+      // fallback numérico: calcula (f(x+h)-f(x))/h para h pequeño
+      const jsFn = safeEvalFunction(f);
+      const xnum = parseFloat(document.getElementById('xval').value) || 1;
+      if(!jsFn) return 'NaN';
+      const hs = [1e-1,1e-2,1e-3,1e-4,1e-5,1e-6];
+      let last = null;
+      for(const h of hs){
+        const val = (jsFn(xnum + h) - jsFn(xnum))/h;
+        last = val;
+      }
+      return last;
+    }
+
+    function drawChart(fFunc, dFunc, rangeStr){
+      const canvas = document.getElementById('chart');
+      let min = -5, max = 5;
+      if(rangeStr){
+        const parts = rangeStr.split(',').map(s=>parseFloat(s.trim()));
+        if(parts.length===2 && !isNaN(parts[0]) && !isNaN(parts[1])){ min = parts[0]; max = parts[1]; }
+      }
+      const N = 200;
+      const xs = [];
+      const ys = [];
+      const yds = [];
+      for(let i=0;i<=N;i++){
+        const x = min + (max-min)*i/N;
+        xs.push(x);
+        try{ ys.push(fFunc ? fFunc(x) : NaN); }catch(e){ ys.push(NaN); }
+        try{ yds.push(dFunc ? dFunc(x) : NaN); }catch(e){ yds.push(NaN); }
+      }
+
+      if(chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(canvas.getContext('2d'),{
+        type:'line',
+        data:{
+          labels: xs,
+          datasets:[
+            {label:'f(x)', data: ys, fill:false, tension:0.2, borderWidth:2},
+            {label:"f'(x)", data: yds, fill:false, tension:0.2, borderDash:[6,4], borderWidth:2}
+          ]
+        },
+        options:{
+          interaction:{mode:'nearest'},
+          scales:{
+            x:{type:'linear',title:{display:true,text:'x'}},
+            y:{title:{display:true,text:'y'}}
+          }
+        }
       });
     }
 
-    // Permitir ejecutar con Enter
-    document.getElementById('fn').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('calc').click(); } });
-
+    function escapeHtml(unsafe) {
+      return (unsafe || '').replace(/[&<>"']/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]; });
+    }
   </script>
 </body>
 </html>
